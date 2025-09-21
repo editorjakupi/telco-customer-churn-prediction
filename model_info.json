@@ -1,0 +1,33 @@
+{
+  "best_model": "Random Forest (all features)",
+  "best_accuracy": 0.7416607523066004,
+  "test_accuracy": 0.7395315826827538,
+  "numerical_columns": [
+    "tenure",
+    "MonthlyCharges",
+    "TotalCharges"
+  ],
+  "categorical_columns": [
+    "gender",
+    "SeniorCitizen",
+    "Partner",
+    "Dependents",
+    "PhoneService",
+    "MultipleLines",
+    "InternetService",
+    "OnlineSecurity",
+    "OnlineBackup",
+    "DeviceProtection",
+    "TechSupport",
+    "StreamingTV",
+    "StreamingMovies",
+    "Contract",
+    "PaperlessBilling",
+    "PaymentMethod"
+  ],
+  "engineered_features": [
+    "TenureGroup",
+    "ChargesGroup"
+  ],
+  "total_features": 21
+}
