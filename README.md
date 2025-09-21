@@ -1,10 +1,10 @@
 # Telco Customer Churn Prediction
 
-## 📱 About the Project
+## About the Project
 
 This project predicts customer churn in telecommunications companies using machine learning. The solution includes a comprehensive Jupyter notebook for model development and a Streamlit web application for interactive predictions and risk analysis.
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Install Dependencies
 
@@ -25,7 +25,7 @@ jupyter notebook telco_customer_churn_analysis.ipynb
 streamlit run telco_churn_streamlit_app.py
 ```
 
-## 📊 Model Performance
+## Model Performance
 
 - **Best Model:** Random Forest (all features)
 - **Validation Accuracy:** 74.2%
@@ -33,7 +33,7 @@ streamlit run telco_churn_streamlit_app.py
 - **Total Features:** 21
 - **Dataset:** 7,043 customers with 66.4% churn rate
 
-## 🔍 Key Churn Factors
+## Key Churn Factors
 
 **High Churn Risk:**
 
@@ -51,7 +51,7 @@ streamlit run telco_churn_streamlit_app.py
 - Long customer tenure (>24 months)
 - Online security and backup services
 
-## 💡 Business Recommendations
+## Business Recommendations
 
 **For High-Risk Customers:**
 
@@ -61,7 +61,7 @@ streamlit run telco_churn_streamlit_app.py
 4. Enhance online security features
 5. Provide proactive customer support
 
-## 🎯 Streamlit App Features
+## Streamlit App Features
 
 ### Customer Prediction
 
@@ -77,7 +77,7 @@ streamlit run telco_churn_streamlit_app.py
 - Export functionality for targeted marketing campaigns
 - Visual analytics and insights
 
-## 📁 Project Files
+## Project Files
 
 - `telco_customer_churn_analysis.ipynb` - Main Jupyter notebook with complete ML workflow
 - `telco_churn_streamlit_app.py` - Streamlit web application for predictions
@@ -88,7 +88,7 @@ streamlit run telco_churn_streamlit_app.py
 - `requirements.txt` - Python dependencies
 - `README.md` - This documentation file
 
-## 🛠️ Technical Details
+## Technical Details
 
 ### Model Comparison Results
 
@@ -107,11 +107,11 @@ streamlit run telco_churn_streamlit_app.py
 4. ChargesGroup_Low (0.068)
 5. Contract_One year (0.049)
 
-## 🎓 Academic Context
+## Academic Context
 
 This project was developed as part of the "Knowledge Control, AI - Theory and Application Part 1" course at NBI Handelsakademin. The solution demonstrates practical application of machine learning techniques for business problem-solving in the telecommunications industry.
 
-## 📄 Report Structure
+## Report Structure
 
 The individual report includes:
 
@@ -121,7 +121,7 @@ The individual report includes:
 - Conclusions and Self-Evaluation
 - Technical Appendix and References
 
-## 🚀 Getting Started
+## Getting Started
 
 1. Clone this repository
 2. Install dependencies: `pip install -r requirements.txt`
