@@ -1,7 +1,7 @@
 {
   "best_model": "Random Forest (all features)",
-  "best_accuracy": 0.9927227547035854,
-  "test_accuracy": 0.7409510290986515,
+  "best_accuracy": 0.7416607523066004,
+  "test_accuracy": 0.7395315826827538,
   "numerical_columns": [
     "tenure",
     "MonthlyCharges",
@@ -25,6 +25,9 @@
     "PaperlessBilling",
     "PaymentMethod"
   ],
-  "engineered_features": [],
-  "total_features": 19
+  "engineered_features": [
+    "TenureGroup",
+    "ChargesGroup"
+  ],
+  "total_features": 21
 }
