@@ -6,6 +6,12 @@ This project predicts customer churn for telecommunications companies using mach
 
 **Dataset:** [Telco Customer Churn Dataset](https://www.kaggle.com/datasets/blastchar/telco-customer-churn)
 
+## Live Demo
+
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://telco-customer-churn-prediction-editorjakupi.streamlit.app/)
+
+Try the live application: https://telco-customer-churn-prediction-editorjakupi.streamlit.app/
+
 ## Quick Start
 
 ### 1. Train the Model
