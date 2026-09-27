@@ -41,85 +41,223 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Ren och professionell styling
+# Luxury slate / navy + teal — light and dark Streamlit themes
 st.markdown("""
 <style>
-    .main {
-        padding-top: 2rem;
+    :root {
+        --telco-bg-1: #f1f5f9;
+        --telco-bg-2: #e2e8f0;
+        --telco-surface: rgba(255, 255, 255, 0.88);
+        --telco-surface-border: rgba(15, 23, 42, 0.08);
+        --telco-text: #0f172a;
+        --telco-text-muted: #475569;
+        --telco-accent: #0d9488;
+        --telco-accent-soft: rgba(13, 148, 136, 0.15);
+        --telco-navy: #1e3a5f;
+        --telco-shadow: 0 12px 40px rgba(15, 23, 42, 0.12);
+        --telco-hero-glow: rgba(13, 148, 136, 0.25);
     }
-    
+
+    html[data-theme="dark"],
+    .stApp[data-theme="dark"] {
+        --telco-bg-1: #0b1220;
+        --telco-bg-2: #111827;
+        --telco-surface: rgba(30, 41, 59, 0.72);
+        --telco-surface-border: rgba(148, 163, 184, 0.12);
+        --telco-text: #f1f5f9;
+        --telco-text-muted: #94a3b8;
+        --telco-accent: #2dd4bf;
+        --telco-accent-soft: rgba(45, 212, 191, 0.12);
+        --telco-navy: #cbd5e1;
+        --telco-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+        --telco-hero-glow: rgba(45, 212, 191, 0.18);
+    }
+
     .stApp {
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        background: linear-gradient(145deg, var(--telco-bg-1) 0%, var(--telco-bg-2) 55%, var(--telco-bg-1) 100%);
     }
-    
+
+    .block-container {
+        padding-top: 1.5rem;
+        max-width: 1200px;
+    }
+
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, var(--telco-bg-2) 0%, var(--telco-bg-1) 100%);
+        border-right: 1px solid var(--telco-surface-border);
+    }
+
+    [data-testid="stSidebar"] .stMarkdown p,
+    [data-testid="stSidebar"] .stMarkdown li {
+        color: var(--telco-text-muted);
+    }
+
+    .telco-hero {
+        text-align: center;
+        padding: 2rem 1.5rem 2.25rem;
+        margin-bottom: 1.5rem;
+        border-radius: 20px;
+        background: var(--telco-surface);
+        border: 1px solid var(--telco-surface-border);
+        box-shadow: var(--telco-shadow);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .telco-hero::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(ellipse 80% 60% at 50% -20%, var(--telco-hero-glow), transparent 70%);
+        pointer-events: none;
+    }
+
     .main-header {
-        font-size: 2.5rem;
-        font-weight: bold;
-        color: #2c3e50;
-        text-align: center;
-        margin-bottom: 2rem;
-        text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        font-size: 2.35rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: var(--telco-text);
+        margin: 0 0 0.35rem 0;
+        position: relative;
     }
-    
+
+    .hero-subtitle {
+        font-size: 1.05rem;
+        color: var(--telco-text-muted);
+        font-weight: 400;
+        margin: 0;
+        position: relative;
+    }
+
+    .hero-accent-line {
+        width: 72px;
+        height: 3px;
+        margin: 1rem auto 0;
+        border-radius: 999px;
+        background: linear-gradient(90deg, transparent, var(--telco-accent), transparent);
+        position: relative;
+    }
+
     .section-header {
-        font-size: 1.5rem;
-        color: #2c3e50;
-        margin: 1.5rem 0 1rem 0;
-        border-bottom: 2px solid #3498db;
-        padding-bottom: 0.5rem;
+        font-size: 1.35rem;
+        font-weight: 600;
+        color: var(--telco-text);
+        margin: 1.75rem 0 1rem 0;
+        padding-bottom: 0.6rem;
+        border-bottom: 2px solid var(--telco-accent-soft);
+        position: relative;
     }
-    
+
+    .section-header::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        bottom: -2px;
+        width: 64px;
+        height: 2px;
+        background: var(--telco-accent);
+        border-radius: 1px;
+    }
+
     .prediction-card {
-        background: rgba(255, 255, 255, 0.95);
-        padding: 2rem;
-        border-radius: 15px;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.15);
-        margin: 1rem 0;
-        border: 1px solid rgba(52, 152, 219, 0.2);
+        background: var(--telco-surface);
+        padding: 2rem 2rem 1.5rem;
+        border-radius: 18px;
+        box-shadow: var(--telco-shadow);
+        margin: 1.25rem 0;
+        border: 1px solid var(--telco-surface-border);
+        backdrop-filter: blur(12px);
     }
-    
+
+    .sidebar-brand {
+        padding: 1rem 0.25rem 1.25rem;
+        margin-bottom: 0.5rem;
+        border-bottom: 1px solid var(--telco-surface-border);
+    }
+
+    .sidebar-brand-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--telco-text);
+        margin: 0;
+    }
+
+    .sidebar-brand-tag {
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--telco-accent);
+        margin: 0.25rem 0 0;
+    }
+
     .risk-critical {
-        background: linear-gradient(135deg, #ff6b6b, #ee5a52);
-        color: white;
-        padding: 1rem;
-        border-radius: 10px;
+        background: linear-gradient(135deg, #b91c1c, #991b1b);
+        color: #fff;
+        padding: 1rem 1.25rem;
+        border-radius: 12px;
         text-align: center;
-        font-weight: bold;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        box-shadow: 0 8px 24px rgba(185, 28, 28, 0.35);
     }
-    
+
     .risk-high {
-        background: linear-gradient(135deg, #ffa726, #ff9800);
-        color: white;
-        padding: 1rem;
-        border-radius: 10px;
+        background: linear-gradient(135deg, #c2410c, #9a3412);
+        color: #fff;
+        padding: 1rem 1.25rem;
+        border-radius: 12px;
         text-align: center;
-        font-weight: bold;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        box-shadow: 0 8px 24px rgba(194, 65, 12, 0.3);
     }
-    
+
     .risk-medium {
-        background: linear-gradient(135deg, #42a5f5, #2196f3);
-        color: white;
-        padding: 1rem;
-        border-radius: 10px;
+        background: linear-gradient(135deg, #0e7490, #155e75);
+        color: #fff;
+        padding: 1rem 1.25rem;
+        border-radius: 12px;
         text-align: center;
-        font-weight: bold;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        box-shadow: 0 8px 24px rgba(14, 116, 144, 0.3);
     }
-    
+
     .risk-low {
-        background: linear-gradient(135deg, #66bb6a, #4caf50);
-        color: white;
-        padding: 1rem;
-        border-radius: 10px;
+        background: linear-gradient(135deg, #0d9488, #0f766e);
+        color: #fff;
+        padding: 1rem 1.25rem;
+        border-radius: 12px;
         text-align: center;
-        font-weight: bold;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        box-shadow: 0 8px 24px rgba(13, 148, 136, 0.35);
     }
-    
-    .sidebar .sidebar-content {
-        background: rgba(255, 255, 255, 0.95);
+
+    div[data-testid="stMetric"] {
+        background: var(--telco-surface);
+        border: 1px solid var(--telco-surface-border);
+        border-radius: 14px;
+        padding: 0.75rem 1rem;
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
     }
-    
-    .stMarkdown {
-        color: #2c3e50;
+
+    html[data-theme="dark"] div[data-testid="stMetric"],
+    .stApp[data-theme="dark"] div[data-testid="stMetric"] {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    }
+
+    .stButton > button[kind="primary"] {
+        background: linear-gradient(135deg, #0f766e, #115e59);
+        border: none;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        box-shadow: 0 6px 20px rgba(13, 148, 136, 0.35);
+    }
+
+    html[data-theme="dark"] .stButton > button[kind="primary"],
+    .stApp[data-theme="dark"] .stButton > button[kind="primary"] {
+        background: linear-gradient(135deg, #14b8a6, #0d9488);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -278,7 +416,7 @@ def display_prediction(prediction, probability):
         delta = {'reference': 50},
         gauge = {
             'axis': {'range': [None, 100]},
-            'bar': {'color': "darkblue"},
+            'bar': {'color': "#0d9488"},
             'steps': [
                 {'range': [0, 30], 'color': "lightgreen"},
                 {'range': [30, 60], 'color': "yellow"},
@@ -428,8 +566,12 @@ def display_risk_explorer(model):
                     # Risk distribution
                     risk_dist = high_risk['Risk_Level'].value_counts()
                     if len(risk_dist) > 0:
-                        fig = px.pie(values=risk_dist.values, names=risk_dist.index, 
-                                   title="Risk Distribution (filtered)", color_discrete_sequence=px.colors.qualitative.Set3)
+                        fig = px.pie(
+                            values=risk_dist.values,
+                            names=risk_dist.index,
+                            title="Risk Distribution (filtered)",
+                            color_discrete_sequence=["#0f766e", "#0e7490", "#c2410c", "#b91c1c"],
+                        )
                         st.plotly_chart(fig, use_container_width=True)
                     
                     # Export
@@ -447,8 +589,16 @@ def display_risk_explorer(model):
 
 def main():
     """Main function"""
-    # Header
-    st.markdown('<div class="main-header">Telco Churn Prediction</div>', unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div class="telco-hero">
+            <div class="main-header">Telco Churn Prediction</div>
+            <p class="hero-subtitle">ML-powered retention insights for telecommunications customers</p>
+            <div class="hero-accent-line"></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
     
     # Load model
     model, model_info = load_model_and_info()
@@ -457,8 +607,16 @@ def main():
         st.error("Could not load model. Check that files exist.")
         return
     
-    # Sidebar
     with st.sidebar:
+        st.markdown(
+            """
+            <div class="sidebar-brand">
+                <p class="sidebar-brand-title">Telco Retention</p>
+                <p class="sidebar-brand-tag">Churn intelligence</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
         # About the App section (expandable)
         with st.expander("About the App", expanded=False):
             st.markdown(f"""

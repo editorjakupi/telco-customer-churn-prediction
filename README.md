@@ -12,6 +12,8 @@ This project predicts customer churn for telecommunications companies using mach
 
 Try the live application: https://telco-customer-churn-prediction-editorjakupi.streamlit.app/
 
+The app uses a slate/navy palette with teal accents and adapts to **Streamlit light and dark mode** (Settings → Theme in the app menu). Switch themes anytime; cards, sidebar, and typography stay readable in both modes.
+
 ## Quick Start
 
 ### 1. Train the Model
@@ -27,11 +29,24 @@ jupyter notebook telco_customer_churn_analysis.ipynb
 pip install -r requirements.txt
 ```
 
-### 3. Start Streamlit App
+### 3. Start Streamlit App (local)
+
+From the project root (where `best_churn_model.pkl` and the CSV live):
 
 ```bash
 streamlit run telco_churn_streamlit_app.py
 ```
+
+Open http://localhost:8501. Theme defaults come from `.streamlit/config.toml`; override appearance with Streamlit’s built-in light/dark toggle.
+
+### 4. Run with Docker (optional)
+
+```bash
+docker build -t telco-churn .
+docker run -p 8501:8501 -e PORT=8501 telco-churn
+```
+
+The container listens on `$PORT` (default **8501**) and binds to `0.0.0.0` for hosting platforms.
 
 ## Model Performance
 
@@ -99,6 +114,9 @@ streamlit run telco_churn_streamlit_app.py
 
 - `telco_customer_churn_analysis.ipynb` - Main notebook with complete ML workflow
 - `telco_churn_streamlit_app.py` - Streamlit application for predictions
+- `.streamlit/config.toml` - Default theme colors and server settings
+- `Dockerfile` - Container image for always-on hosting
+- `render.yaml` - Render Blueprint (Docker web service)
 - `individual_report.docx` - Individual report following NBI template
 - `best_churn_model.pkl` - Trained model (created after training)
 - `model_info.json` - Model metadata (created after training)
@@ -121,7 +139,20 @@ This project was developed as part of the Knowledge Control for "AI - Theory and
 
 ## Deployment
 
-The Streamlit app is ready for deployment on Streamlit Cloud. Simply connect your GitHub repository and the app will automatically deploy with the trained model.
+### Streamlit Community Cloud
+
+1. Push this repository to GitHub (include `best_churn_model.pkl`, `model_info.json`, and `WA_Fn-UseC_-Telco-Customer-Churn.csv`).
+2. Go to [share.streamlit.io](https://share.streamlit.io), connect the repo, and set the main file to `telco_churn_streamlit_app.py`.
+3. Deploy. The app reads models and data from the repo root using relative paths.
+
+### Render (always-on Docker)
+
+1. Connect the GitHub repo in [Render](https://render.com).
+2. Use **New → Blueprint** and point to `render.yaml`, or create a **Web Service** with **Docker** and this repo.
+3. Render sets `PORT` automatically; the Dockerfile runs Streamlit on `$PORT` (fallback **8501**).
+4. Health checks use `/_stcore/health`.
+
+Free tiers may sleep when idle on some platforms; Docker on Render keeps the service defined for production-style hosting once upgraded or on a suitable plan.
 
 ## Business Impact
 
