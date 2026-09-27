@@ -171,3 +171,10 @@ This solution enables telecommunications companies to:
 - **Hyperparameter Tuning:** GridSearchCV with 5-fold cross-validation
 - **Model Evaluation:** Accuracy, Confusion Matrix, Classification Report
 - **Deployment:** Streamlit with joblib model persistence
+
+## Always-on
+
+- **Streamlit Cloud** hosts the live demo and auto-redeploys from `main`.
+- GitHub Action **Keep Streamlit Awake** pings the app every 10 minutes so the free tier stays reachable.
+- For dedicated always-on containers, use `Dockerfile` / `render.yaml` on Render or Railway.
+
