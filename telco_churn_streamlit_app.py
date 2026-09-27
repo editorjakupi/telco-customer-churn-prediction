@@ -79,8 +79,7 @@ def inject_telco_theme(theme: str) -> None:
         }
         """
 
-    st.markdown(
-        f"""
+    markup = f"""
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
@@ -282,9 +281,12 @@ div[data-testid="stMetric"] label {{
     box-shadow: 0 6px 20px rgba(13, 148, 136, 0.35);
 }}
 </style>
-        """,
-        unsafe_allow_html=True,
-    )
+        """
+    inject = getattr(st, "html", None)
+    if inject:
+        inject(markup)
+    else:
+        st.warning("Upgrade Streamlit (>=1.33) so theme CSS does not leak as text.")
 
 @st.cache_data
 def load_model_and_info():
