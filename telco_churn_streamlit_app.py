@@ -280,6 +280,66 @@ div[data-testid="stMetric"] label {{
     letter-spacing: 0.02em;
     box-shadow: 0 6px 20px rgba(13, 148, 136, 0.35);
 }}
+
+/* Full widget theming */
+.stTextInput input, .stNumberInput input, .stTextArea textarea,
+[data-baseweb="select"] > div, [data-baseweb="input"] input,
+.stSelectbox div[data-baseweb="select"] > div {{
+    background-color: var(--telco-surface) !important;
+    color: var(--telco-text) !important;
+    border-color: var(--telco-surface-border) !important;
+}}
+label, .stMarkdown, .stCaption, [data-testid="stWidgetLabel"] p,
+[data-testid="stRadio"] label, [data-testid="stCheckbox"] label {{
+    color: var(--telco-text) !important;
+}}
+[data-testid="stExpander"] details,
+[data-testid="stExpander"] summary {{
+    background: var(--telco-surface) !important;
+    color: var(--telco-text) !important;
+    border-color: var(--telco-surface-border) !important;
+}}
+[data-testid="stDataFrame"], [data-testid="stTable"] {{
+    background: var(--telco-surface) !important;
+    color: var(--telco-text) !important;
+}}
+.stTabs [data-baseweb="tab"] {{
+    color: var(--telco-text-muted) !important;
+    background: var(--telco-surface) !important;
+}}
+.stTabs [aria-selected="true"] {{
+    color: var(--telco-accent) !important;
+}}
+div[data-testid="stSidebar"] label span {{
+    color: var(--telco-text) !important;
+}}
+
+@media (max-width: 768px) {{
+    .block-container {{
+        padding-left: 0.85rem !important;
+        padding-right: 0.85rem !important;
+        max-width: 100% !important;
+    }}
+    .telco-hero {{
+        padding: 1.35rem 1rem 1.5rem;
+    }}
+    .main-header {{
+        font-size: clamp(1.7rem, 8vw, 2.2rem);
+    }}
+    .hero-subtitle {{
+        font-size: 0.95rem;
+    }}
+    .prediction-card {{
+        padding: 1.25rem 1rem;
+    }}
+    .stButton > button {{
+        min-height: 44px !important;
+        width: 100%;
+    }}
+    div[data-testid="stHorizontalBlock"] {{
+        flex-wrap: wrap !important;
+    }}
+}}
 </style>
         """
     inject = getattr(st, "html", None)
@@ -287,6 +347,49 @@ div[data-testid="stMetric"] label {{
         inject(markup)
     else:
         st.warning("Upgrade Streamlit (>=1.33) so theme CSS does not leak as text.")
+
+
+LANG_KEY = "telco_ui_lang"
+
+TELCO_I18N = {
+    "en": {
+        "lang": "Language",
+        "theme": "Theme",
+        "appearance": "Appearance",
+        "light": "Light",
+        "dark": "Dark",
+        "nav": "Navigation",
+        "page_pred": "Customer Prediction",
+        "page_risk": "Risk Explorer",
+        "hero": "Telco Churn Prediction",
+        "hero_sub": "ML-powered retention insights for telecommunications customers",
+        "predict": "Predict Churn",
+        "about": "About the App",
+        "model_info": "Model Information",
+        "section_customer": "Customer Information",
+    },
+    "sv": {
+        "lang": "Språk",
+        "theme": "Tema",
+        "appearance": "Utseende",
+        "light": "Ljust",
+        "dark": "Mörkt",
+        "nav": "Navigation",
+        "page_pred": "Kundprognos",
+        "page_risk": "Riskutforskare",
+        "hero": "Telco Churn-prognos",
+        "hero_sub": "ML-baserade retentionsinsikter för telekomkunder",
+        "predict": "Förutsäg churn",
+        "about": "Om appen",
+        "model_info": "Modellinformation",
+        "section_customer": "Kundinformation",
+    },
+}
+
+
+def tt(key: str) -> str:
+    lang = st.session_state.get(LANG_KEY, "en")
+    return TELCO_I18N.get(lang, TELCO_I18N["en"]).get(key, key)
 
 @st.cache_data
 def load_model_and_info():
@@ -302,7 +405,7 @@ def load_model_and_info():
 
 def create_complete_input_form():
     """Create complete input form with all features in correct order"""
-    st.markdown('<div class="section-header">Customer Information</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="section-header">{tt("section_customer")}</div>', unsafe_allow_html=True)
     
     # Personal information
     st.markdown("**Personal Information**")
@@ -618,6 +721,11 @@ def main():
     if THEME_KEY not in st.session_state:
         st.session_state[THEME_KEY] = "light"
 
+    if THEME_KEY not in st.session_state:
+        st.session_state[THEME_KEY] = "light"
+    if LANG_KEY not in st.session_state:
+        st.session_state[LANG_KEY] = "en"
+
     # Load model first so sidebar can show accuracy
     model, model_info = load_model_and_info()
 
@@ -631,25 +739,37 @@ def main():
             """,
             unsafe_allow_html=True,
         )
-        st.markdown("### Theme")
+        st.markdown(f"### {tt('lang')}")
+        lang_choice = st.radio(
+            tt("lang"),
+            ["English", "Svenska"],
+            index=0 if st.session_state[LANG_KEY] == "en" else 1,
+            horizontal=True,
+            key="telco_lang_radio",
+            label_visibility="collapsed",
+        )
+        st.session_state[LANG_KEY] = "sv" if lang_choice == "Svenska" else "en"
+
+        st.markdown(f"### {tt('theme')}")
         theme_choice = st.radio(
-            "Appearance",
-            ["Light", "Dark"],
+            tt("appearance"),
+            [tt("light"), tt("dark")],
             index=0 if st.session_state[THEME_KEY] == "light" else 1,
             horizontal=True,
             key="telco_theme_radio",
         )
-        st.session_state[THEME_KEY] = "dark" if theme_choice == "Dark" else "light"
+        st.session_state[THEME_KEY] = "dark" if theme_choice == tt("dark") else "light"
 
-        st.markdown("### Navigation")
+        st.markdown(f"### {tt('nav')}")
         page = st.radio(
             "Select function",
-            ["Customer Prediction", "Risk Explorer"],
+            [tt("page_pred"), tt("page_risk")],
             label_visibility="collapsed",
+            key="telco_page_radio",
         )
 
         if model_info:
-            with st.expander("About the App", expanded=False):
+            with st.expander(tt("about"), expanded=False):
                 st.markdown(
                     f"""
             **Telco Churn Prediction**
@@ -663,7 +783,7 @@ def main():
             - Test: {model_info.get('test_accuracy', 0.728):.1%}
             """
                 )
-            with st.expander("Model Information", expanded=False):
+            with st.expander(tt("model_info"), expanded=False):
                 st.markdown(f"**Model:** {model_info.get('best_model', 'Random Forest')}")
                 st.markdown(f"**Validation Accuracy:** {model_info.get('best_accuracy', 0.742):.1%}")
                 st.markdown(f"**Test Accuracy:** {model_info.get('test_accuracy', 0.728):.1%}")
@@ -676,10 +796,10 @@ def main():
     inject_telco_theme(st.session_state[THEME_KEY])
 
     st.markdown(
-        """
+        f"""
         <div class="telco-hero">
-            <div class="main-header">Telco Churn Prediction</div>
-            <p class="hero-subtitle">ML-powered retention insights for telecommunications customers</p>
+            <div class="main-header">{tt("hero")}</div>
+            <p class="hero-subtitle">{tt("hero_sub")}</p>
             <div class="hero-accent-line"></div>
         </div>
         """,
@@ -690,12 +810,12 @@ def main():
         st.error("Could not load model. Check that files exist.")
         return
 
-    if page == "Customer Prediction":
+    if page == tt("page_pred"):
         customer_data = create_complete_input_form()
-        if st.button("Predict Churn", type="primary", use_container_width=True):
+        if st.button(tt("predict"), type="primary", use_container_width=True):
             prediction, probability = predict_churn(model, customer_data)
             display_prediction(prediction, probability)
-    elif page == "Risk Explorer":
+    elif page == tt("page_risk"):
         display_risk_explorer(model)
 
 if __name__ == "__main__":
