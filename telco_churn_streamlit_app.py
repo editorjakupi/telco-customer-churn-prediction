@@ -92,6 +92,12 @@ def inject_telco_theme(theme: str) -> None:
   color: var(--telco-text) !important;
 }
 .block-container { padding-top: 1.35rem; max-width: 1180px; }
+[data-testid="stHeader"] { background: transparent !important; }
+[data-testid="stHeader"] button, [data-testid="stHeader"] span,
+[data-testid="stSidebarCollapsedControl"] button, [data-testid="stSidebarCollapsedControl"] span,
+[data-testid="stSidebarCollapseButton"] button, [data-testid="stSidebarCollapseButton"] span {
+  color: var(--telco-text) !important; -webkit-text-fill-color: var(--telco-text) !important;
+}
 [data-testid="stSidebar"] {
   background: linear-gradient(180deg, var(--telco-bg-2) 0%, var(--telco-bg-1) 100%);
   border-right: 1px solid var(--telco-surface-border);
@@ -104,6 +110,19 @@ def inject_telco_theme(theme: str) -> None:
   -webkit-text-fill-color: var(--telco-text) !important;
   font-family: 'DM Sans', system-ui, sans-serif;
   opacity: 1 !important;
+}
+/* Keep Streamlit's Material icon font intact (otherwise icon names render as text) */
+[data-testid="stIconMaterial"],
+.material-symbols-rounded,
+span[class*="material-symbols"],
+[data-testid="stSidebarCollapseButton"] *,
+[data-testid="stSidebarCollapsedControl"] *,
+[data-testid="stExpanderToggleIcon"] {
+  font-family: 'Material Symbols Rounded' !important;
+  font-weight: normal !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
+  font-feature-settings: 'liga' !important;
 }
 .telco-hero {
   text-align: center; padding: 2.15rem 1.5rem 2.35rem; margin-bottom: 1.5rem;
