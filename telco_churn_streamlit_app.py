@@ -13,6 +13,7 @@ import numpy as np
 from datetime import datetime
 
 from google_translate import inject_google_translate
+from streamlit_theme_widgets import inject_widget_theme, streamlit_widget_theme_css
 
 # Feature engineering funktioner; dessa funktioner måste skapas för att matcha modellens förväntningar
 def tenure_group(tenure):
@@ -107,7 +108,7 @@ def inject_telco_theme(theme: str) -> None:
 [data-testid="stSidebar"] .stMarkdown p,
 [data-testid="stSidebar"] .stMarkdown li,
 [data-testid="stSidebar"] label {{
-    color: var(--telco-text-muted);
+    color: var(--telco-text) !important;
     font-family: 'DM Sans', system-ui, sans-serif;
 }}
 
@@ -283,85 +284,11 @@ div[data-testid="stMetric"] label {{
     box-shadow: 0 6px 20px rgba(13, 148, 136, 0.35);
 }}
 
-/* Full widget theming */
-.stTextInput input, .stNumberInput input, .stTextArea textarea,
-[data-baseweb="select"] > div, [data-baseweb="input"] input,
-.stSelectbox div[data-baseweb="select"] > div {{
-    background-color: var(--telco-surface) !important;
-    color: var(--telco-text) !important;
-    border-color: var(--telco-surface-border) !important;
-}}
-label, .stMarkdown, .stCaption, [data-testid="stWidgetLabel"] p,
-[data-testid="stRadio"] label, [data-testid="stCheckbox"] label {{
+.prediction-card, .section-header {{
     color: var(--telco-text) !important;
 }}
-[data-testid="stExpander"] details,
-[data-testid="stExpander"] summary {{
-    background: var(--telco-surface) !important;
-    color: var(--telco-text) !important;
-    border-color: var(--telco-surface-border) !important;
-}}
-[data-testid="stDataFrame"], [data-testid="stTable"] {{
-    background: var(--telco-surface) !important;
-    color: var(--telco-text) !important;
-}}
-.stTabs [data-baseweb="tab"] {{
-    color: var(--telco-text-muted) !important;
-    background: var(--telco-surface) !important;
-}}
-.stTabs [aria-selected="true"] {{
-    color: var(--telco-accent) !important;
-}}
-div[data-testid="stSidebar"] label span {{
-    color: var(--telco-text) !important;
-}}
-
-/* Aggressive dark/light widget visibility */
-.stApp, [data-testid="stAppViewContainer"], section[data-testid="stSidebar"] {{
-    color: var(--telco-text) !important;
-    color-scheme: {"dark" if theme == "dark" else "light"};
-}}
-div[data-baseweb="base-input"],
-div[data-baseweb="select"] > div,
-div[data-baseweb="input"],
-.stNumberInput div[data-baseweb="input"] > div,
-.stSlider label, .stSlider p,
-input, textarea, select {{
-    background-color: var(--telco-surface) !important;
-    color: var(--telco-text) !important;
-    -webkit-text-fill-color: var(--telco-text) !important;
-    caret-color: var(--telco-text) !important;
-    border-color: var(--telco-surface-border) !important;
-}}
-[data-baseweb="popover"] ul,
-[data-baseweb="menu"],
-[role="listbox"],
-[data-baseweb="popover"] li {{
-    background-color: var(--telco-bg-2) !important;
-    color: var(--telco-text) !important;
-}}
-[data-testid="stMetricValue"],
-[data-testid="stWidgetLabel"] *,
-.stMarkdown p, .stMarkdown li, .stMarkdown span {{
-    color: var(--telco-text) !important;
-}}
-.prediction-card, .prediction-card * {{
-    color: var(--telco-text) !important;
-}}
-.section-header {{
-    color: var(--telco-text) !important;
-}}
-.goog-te-banner-frame, .skiptranslate iframe.goog-te-banner-frame {{ display: none !important; }}
-body {{ top: 0 !important; }}
-.goog-logo-link, .goog-te-gadget span {{ display: none !important; }}
-.goog-te-gadget {{ font-size: 0 !important; }}
-#google_translate_element select {{
-    font-size: 0.85rem !important;
-    min-height: 36px;
-    color: var(--telco-text) !important;
-    background: var(--telco-surface) !important;
-}}
-
+"""
+    markup = markup + streamlit_widget_theme_css(theme, prefix="telco") + f"""
 @media (max-width: 768px) {{
     .block-container {{
         padding-left: 0.85rem !important;
@@ -397,11 +324,11 @@ body {{ top: 0 !important; }}
         st.warning("Upgrade Streamlit (>=1.33) so theme CSS does not leak as text.")
 
 
-LANG_KEY = "telco_ui_lang"
+THEME_KEY = "telco_ui_theme"
 
-TELCO_I18N = {
-    "en": {
-        "lang": "Language",
+def tt(key: str) -> str:
+    """English UI strings — Google Translate handles other languages."""
+    en = {
         "theme": "Theme",
         "appearance": "Appearance",
         "light": "Light",
@@ -416,30 +343,8 @@ TELCO_I18N = {
         "model_info": "Model Information",
         "section_customer": "Customer Information",
         "translate": "Translate",
-    },
-    "sv": {
-        "lang": "Språk",
-        "theme": "Tema",
-        "appearance": "Utseende",
-        "light": "Ljust",
-        "dark": "Mörkt",
-        "nav": "Navigation",
-        "page_pred": "Kundprognos",
-        "page_risk": "Riskutforskare",
-        "hero": "Telco Churn-prognos",
-        "hero_sub": "ML-baserade retentionsinsikter för telekomkunder",
-        "predict": "Förutsäg churn",
-        "about": "Om appen",
-        "model_info": "Modellinformation",
-        "section_customer": "Kundinformation",
-        "translate": "Översätt",
-    },
-}
-
-
-def tt(key: str) -> str:
-    lang = st.session_state.get(LANG_KEY, "en")
-    return TELCO_I18N.get(lang, TELCO_I18N["en"]).get(key, key)
+    }
+    return en.get(key, key)
 
 @st.cache_data
 def load_model_and_info():
@@ -771,11 +676,6 @@ def main():
     if THEME_KEY not in st.session_state:
         st.session_state[THEME_KEY] = "light"
 
-    if THEME_KEY not in st.session_state:
-        st.session_state[THEME_KEY] = "light"
-    if LANG_KEY not in st.session_state:
-        st.session_state[LANG_KEY] = "en"
-
     # Load model first so sidebar can show accuracy
     model, model_info = load_model_and_info()
 
@@ -792,27 +692,15 @@ def main():
         st.markdown(f"### {tt('translate')}")
         inject_google_translate(page_language="en")
 
-        st.markdown(f"### {tt('lang')}")
-        lang_choice = st.radio(
-            tt("lang"),
-            ["English", "Svenska"],
-            index=0 if st.session_state[LANG_KEY] == "en" else 1,
-            horizontal=True,
-            key="telco_lang_radio",
-            label_visibility="collapsed",
-        )
-        st.session_state[LANG_KEY] = "sv" if lang_choice == "Svenska" else "en"
-
         st.markdown(f"### {tt('theme')}")
         theme_choice = st.radio(
             tt("appearance"),
-            [tt("light"), tt("dark")],
+            ["Light", "Dark"],
             index=0 if st.session_state[THEME_KEY] == "light" else 1,
             horizontal=True,
             key="telco_theme_radio",
         )
-        # Compare against fixed English keys stored separately to avoid label flicker
-        st.session_state[THEME_KEY] = "dark" if theme_choice in (tt("dark"), "Dark", "Mörkt") else "light"
+        st.session_state[THEME_KEY] = "dark" if theme_choice == "Dark" else "light"
 
         st.markdown(f"### {tt('nav')}")
         page = st.radio(
@@ -847,8 +735,6 @@ def main():
                 test_acc = model_info.get("test_accuracy", 0.728)
                 st.markdown(f"**Performance Gap:** {test_acc - val_acc:.1%}")
 
-    inject_telco_theme(st.session_state[THEME_KEY])
-
     st.markdown(
         f"""
         <div class="telco-hero">
@@ -871,6 +757,10 @@ def main():
             display_prediction(prediction, probability)
     elif page == tt("page_risk"):
         display_risk_explorer(model)
+
+    # Inject theme last so widget CSS overrides Streamlit Emotion defaults
+    inject_telco_theme(st.session_state[THEME_KEY])
+    inject_widget_theme(st.session_state[THEME_KEY], prefix="telco")
 
 if __name__ == "__main__":
     main()
