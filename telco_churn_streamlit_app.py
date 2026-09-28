@@ -212,60 +212,125 @@ def load_model_and_info():
         st.error(f"Error loading model: {e}")
         return None, None
 
+def themed_ink() -> str:
+    return "#f1f5f9" if st.session_state.get(THEME_KEY) == "dark" else "#0f172a"
+
+
+def field_label(text: str) -> None:
+    """Markdown label with forced ink — survives Emotion light-mode defaults in dark UI."""
+    st.markdown(
+        f'<p style="color:{themed_ink()}!important;-webkit-text-fill-color:{themed_ink()}!important;'
+        f'font-weight:600;font-size:0.88rem;margin:0.4rem 0 0.2rem 0;opacity:1!important;">{text}</p>',
+        unsafe_allow_html=True,
+    )
+
+
+def themed_select(label: str, options, **kwargs):
+    field_label(label)
+    return st.selectbox(label, options, label_visibility="collapsed", **kwargs)
+
+
+def themed_slider(label: str, *args, **kwargs):
+    field_label(label)
+    return st.slider(label, *args, label_visibility="collapsed", **kwargs)
+
+
+def themed_number(label: str, *args, **kwargs):
+    field_label(label)
+    return st.number_input(label, *args, label_visibility="collapsed", **kwargs)
+
+
 def create_complete_input_form():
     """Create complete input form with all features in correct order"""
     st.markdown(f'<div class="section-header">{tt("section_customer")}</div>', unsafe_allow_html=True)
-    
-    # Personal information
-    st.markdown("**Personal Information**")
+
+    ink = themed_ink()
+    st.markdown(
+        f'<p style="color:{ink}!important;font-weight:700;margin:0.75rem 0 0.35rem;">Personal Information</p>',
+        unsafe_allow_html=True,
+    )
     col1, col2, col3 = st.columns(3)
-    
+
     with col1:
-        gender = st.selectbox("Gender", ["Male", "Female"])
-        senior_citizen = st.selectbox("Senior Citizen", ["Yes", "No"])
-        partner = st.selectbox("Partner", ["Yes", "No"])
-        dependents = st.selectbox("Dependents", ["Yes", "No"])
-    
+        gender = themed_select("Gender", ["Male", "Female"], key="telco_gender")
+        senior_citizen = themed_select("Senior Citizen", ["Yes", "No"], key="telco_senior")
+        partner = themed_select("Partner", ["Yes", "No"], key="telco_partner")
+        dependents = themed_select("Dependents", ["Yes", "No"], key="telco_dependents")
+
     with col2:
-        tenure = st.slider("Tenure (months)", 0, 72, 12)
-        phone_service = st.selectbox("Phone Service", ["Yes", "No"])
-        multiple_lines = st.selectbox("Multiple Lines", ["Yes", "No", "No phone service"])
-        internet_service = st.selectbox("Internet Service", ["DSL", "Fiber optic", "No"])
-    
+        tenure = themed_slider("Tenure (months)", 0, 72, 12, key="telco_tenure")
+        phone_service = themed_select("Phone Service", ["Yes", "No"], key="telco_phone")
+        multiple_lines = themed_select(
+            "Multiple Lines", ["Yes", "No", "No phone service"], key="telco_multi"
+        )
+        internet_service = themed_select(
+            "Internet Service", ["DSL", "Fiber optic", "No"], key="telco_internet"
+        )
+
     with col3:
-        online_security = st.selectbox("Online Security", ["Yes", "No", "No internet service"])
-        online_backup = st.selectbox("Online Backup", ["Yes", "No", "No internet service"])
-        device_protection = st.selectbox("Device Protection", ["Yes", "No", "No internet service"])
-        tech_support = st.selectbox("Tech Support", ["Yes", "No", "No internet service"])
-    
-    # Additional services
-    st.markdown("**Services**")
+        online_security = themed_select(
+            "Online Security", ["Yes", "No", "No internet service"], key="telco_os"
+        )
+        online_backup = themed_select(
+            "Online Backup", ["Yes", "No", "No internet service"], key="telco_ob"
+        )
+        device_protection = themed_select(
+            "Device Protection", ["Yes", "No", "No internet service"], key="telco_dp"
+        )
+        tech_support = themed_select(
+            "Tech Support", ["Yes", "No", "No internet service"], key="telco_ts"
+        )
+
+    st.markdown(
+        f'<p style="color:{ink}!important;font-weight:700;margin:0.75rem 0 0.35rem;">Services</p>',
+        unsafe_allow_html=True,
+    )
     col4, col5, col6 = st.columns(3)
-    
+
     with col4:
-        streaming_tv = st.selectbox("Streaming TV", ["Yes", "No", "No internet service"])
-        streaming_movies = st.selectbox("Streaming Movies", ["Yes", "No", "No internet service"])
-    
+        streaming_tv = themed_select(
+            "Streaming TV", ["Yes", "No", "No internet service"], key="telco_stv"
+        )
+        streaming_movies = themed_select(
+            "Streaming Movies", ["Yes", "No", "No internet service"], key="telco_sm"
+        )
+
     with col5:
-        contract = st.selectbox("Contract", ["Month-to-month", "One year", "Two year"])
-        paperless_billing = st.selectbox("Paperless Billing", ["Yes", "No"])
-    
+        contract = themed_select(
+            "Contract", ["Month-to-month", "One year", "Two year"], key="telco_contract"
+        )
+        paperless_billing = themed_select("Paperless Billing", ["Yes", "No"], key="telco_paper")
+
     with col6:
-        payment_method = st.selectbox("Payment Method", 
-                                    ["Electronic check", "Mailed check", "Bank transfer (automatic)", "Credit card (automatic)"])
-    
-    # Charges
-    st.markdown("**Charges**")
+        payment_method = themed_select(
+            "Payment Method",
+            [
+                "Electronic check",
+                "Mailed check",
+                "Bank transfer (automatic)",
+                "Credit card (automatic)",
+            ],
+            key="telco_pay",
+        )
+
+    st.markdown(
+        f'<p style="color:{ink}!important;font-weight:700;margin:0.75rem 0 0.35rem;">Charges</p>',
+        unsafe_allow_html=True,
+    )
     col7, col8 = st.columns(2)
-    
+
     with col7:
-        monthly_charges = st.slider("Monthly Charges ($)", 0.0, 200.0, 50.0, 1.0)
+        monthly_charges = themed_slider(
+            "Monthly Charges ($)", 0.0, 200.0, 50.0, 1.0, key="telco_monthly"
+        )
     with col8:
-        total_charges = st.number_input("Total Charges ($)", 0.0, 10000.0, 1000.0, 10.0)
-    
+        total_charges = themed_number(
+            "Total Charges ($)", 0.0, 10000.0, 1000.0, 10.0, key="telco_total"
+        )
+
     # Convert Senior Citizen to numeric
     senior_citizen_numeric = 1 if senior_citizen == "Yes" else 0
-    
+
     # Create customer data in exact same order as model expects
     customer_data = pd.DataFrame({
         'gender': [gender],
@@ -288,11 +353,11 @@ def create_complete_input_form():
         'MonthlyCharges': [monthly_charges],
         'TotalCharges': [total_charges]
     })
-    
+
     # Add feature engineering
     customer_data['TenureGroup'] = customer_data['tenure'].apply(tenure_group)
     customer_data['ChargesGroup'] = customer_data['MonthlyCharges'].apply(charges_group)
-    
+
     return customer_data
 
 def predict_churn(model, customer_data):
@@ -530,10 +595,6 @@ def main():
     if THEME_KEY not in st.session_state:
         st.session_state[THEME_KEY] = "dark"
 
-    # Apply theme before widgets so labels/fields are not light-mode ink on dark bg
-    inject_telco_theme(st.session_state[THEME_KEY])
-    inject_theme_force(st.session_state[THEME_KEY], accent="#2dd4bf", accent_fg="#042f2e")
-
     model, model_info = load_model_and_info()
 
     with st.sidebar:
@@ -591,6 +652,7 @@ def main():
                 test_acc = model_info.get("test_accuracy", 0.728)
                 st.markdown(f"**Performance Gap:** {test_acc - val_acc:.1%}")
 
+    # Single theme pass after sidebar (avoids flash from double inject)
     theme = st.session_state[THEME_KEY]
     inject_telco_theme(theme)
     inject_widget_theme(theme, prefix="telco")
