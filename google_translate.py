@@ -214,24 +214,16 @@ def render_translate_sidebar(page_language: str = "en", *, theme: Optional[str] 
       url.searchParams.delete('lang');
       url.hash = '';
     }}
+    // Cache-bust so the browser always navigates even if only the hash changed
+    url.searchParams.set('_gt', String(Date.now()));
     win.location.replace(url.toString());
   }}
 
   function switchTo(code) {{
+    // Always cookie + full navigation. In-place goog-te-combo changes are
+    // unreliable for several languages until a hard reload.
     setCookie(code);
-    ensureEngine(function () {{
-      if (applyCombo(code)) {{
-        // Combo applied in-place — still sync URL without full blank stop
-        try {{
-          var win = pWin();
-          var url = new URL(win.location.href);
-          if (code) url.searchParams.set('lang', code); else url.searchParams.delete('lang');
-          win.history.replaceState(null, '', url.toString());
-        }} catch (e) {{}}
-        return;
-      }}
-      navigate(code);
-    }});
+    navigate(code);
   }}
 
   var current = readLang();
@@ -241,8 +233,12 @@ def render_translate_sidebar(page_language: str = "en", *, theme: Optional[str] 
       switchTo(sel.value || '');
     }});
   }}
+  // After load: boot engine and apply cookie language (retries for slow element.js)
   ensureEngine(function () {{
-    if (current) applyCombo(current);
+    if (!current) return;
+    applyCombo(current);
+    setTimeout(function () {{ applyCombo(current); }}, 500);
+    setTimeout(function () {{ applyCombo(current); }}, 1500);
   }});
 }})();
 </script>
