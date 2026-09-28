@@ -47,7 +47,7 @@ st.set_page_config(
 )
 
 THEME_KEY = "telco_ui_theme"
-APP_BUILD = "lux-2026-09-28"
+APP_BUILD = "lux-2026-09-28b"
 
 
 def inject_telco_theme(theme: str) -> None:
@@ -676,6 +676,9 @@ def main():
             key="telco_theme_radio",
         )
         st.session_state[THEME_KEY] = "dark" if theme_choice == "Dark" else "light"
+
+        # Hard marker so we can verify Cloud actually redeployed this commit
+        st.success(f"Live build {APP_BUILD} · Google Translate below")
 
         render_translate_sidebar(page_language="en", theme=st.session_state[THEME_KEY])
 

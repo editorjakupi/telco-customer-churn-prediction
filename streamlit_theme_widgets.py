@@ -100,10 +100,34 @@ def streamlit_widget_theme_css(theme: str, *, prefix: str = "app") -> str:
     }}
     .stApp div[data-baseweb="select"] span,
     .stApp div[data-baseweb="select"] div,
-    .stApp div[data-baseweb="select"] svg {{
+    .stApp div[data-baseweb="select"] svg,
+    .stApp div[data-baseweb="select"] path {{
       color: {text} !important;
       -webkit-text-fill-color: {text} !important;
       fill: {text} !important;
+      stroke: {text} !important;
+    }}
+    .stApp div[data-baseweb="select"] > div {{
+      background-color: {surface} !important;
+      background-image: none !important;
+      color-scheme: {scheme} !important;
+    }}
+    .stApp div[data-baseweb="select"] > div > div,
+    .stApp div[data-baseweb="select"] [data-baseweb="icon"],
+    .stApp div[data-baseweb="select"] button,
+    .stApp div[data-baseweb="select"] [role="button"] {{
+      background-color: {surface} !important;
+      background-image: none !important;
+      color: {text} !important;
+      -webkit-text-fill-color: {text} !important;
+      border-color: transparent !important;
+    }}
+    .stApp div[data-baseweb="select"] svg,
+    .stApp div[data-baseweb="select"] svg * {{
+      fill: {text} !important;
+      color: {text} !important;
+      opacity: 1 !important;
+      visibility: visible !important;
     }}
     .stApp [data-baseweb="popover"],
     .stApp [data-baseweb="menu"],
