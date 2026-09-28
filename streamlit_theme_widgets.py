@@ -182,6 +182,29 @@ def streamlit_widget_theme_css(theme: str, *, prefix: str = "app") -> str:
       -webkit-text-fill-color: {text} !important;
     }}
 
+    .stApp [data-testid="stVerticalBlockBorderWrapper"],
+    .stApp div[data-testid="stMetric"],
+    .stApp [data-testid="stExpander"],
+    .stApp [data-testid="stExpanderDetails"],
+    .stApp .stDataFrame,
+    .stApp [data-testid="stDataFrameResizable"] {{
+      background-color: {surface} !important;
+      color: {text} !important;
+      border-color: {border} !important;
+    }}
+
+    .stApp * {{
+      scrollbar-width: thin !important;
+      scrollbar-color: {muted} {surface2} !important;
+    }}
+    .stApp *::-webkit-scrollbar {{ width: 12px !important; height: 12px !important; }}
+    .stApp *::-webkit-scrollbar-track {{ background: {surface2} !important; }}
+    .stApp *::-webkit-scrollbar-thumb {{
+      background: {muted} !important;
+      border-radius: 8px !important;
+      border: 2px solid {surface2} !important;
+    }}
+
     .goog-te-banner-frame, .skiptranslate iframe.goog-te-banner-frame {{ display: none !important; }}
     body {{ top: 0 !important; }}
     .goog-logo-link, .goog-te-gadget span {{ display: none !important; }}

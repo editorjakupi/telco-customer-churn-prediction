@@ -13,6 +13,7 @@ import numpy as np
 from datetime import datetime
 
 from google_translate import inject_google_translate
+from streamlit_theme_force import inject_theme_force
 from streamlit_theme_widgets import inject_widget_theme, streamlit_widget_theme_css
 
 # Feature engineering funktioner; dessa funktioner måste skapas för att matcha modellens förväntningar
@@ -690,6 +691,7 @@ def main():
             unsafe_allow_html=True,
         )
         st.markdown(f"### {tt('translate')}")
+        st.markdown('<div id="sf-gt-slot"></div>', unsafe_allow_html=True)
         inject_google_translate(page_language="en")
 
         st.markdown(f"### {tt('theme')}")
@@ -758,9 +760,11 @@ def main():
     elif page == tt("page_risk"):
         display_risk_explorer(model)
 
-    # Inject theme last so widget CSS overrides Streamlit Emotion defaults
-    inject_telco_theme(st.session_state[THEME_KEY])
-    inject_widget_theme(st.session_state[THEME_KEY], prefix="telco")
+    # Inject theme last so widget CSS/JS overrides Streamlit Emotion defaults
+    theme = st.session_state[THEME_KEY]
+    inject_telco_theme(theme)
+    inject_widget_theme(theme, prefix="telco")
+    inject_theme_force(theme, accent="#2dd4bf", accent_fg="#042f2e")
 
 if __name__ == "__main__":
     main()
