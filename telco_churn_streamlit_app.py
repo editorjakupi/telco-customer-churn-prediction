@@ -12,6 +12,8 @@ import plotly.express as px
 import numpy as np
 from datetime import datetime
 
+from google_translate import inject_google_translate
+
 # Feature engineering funktioner; dessa funktioner måste skapas för att matcha modellens förväntningar
 def tenure_group(tenure):
     if tenure <= 12:
@@ -314,6 +316,52 @@ div[data-testid="stSidebar"] label span {{
     color: var(--telco-text) !important;
 }}
 
+/* Aggressive dark/light widget visibility */
+.stApp, [data-testid="stAppViewContainer"], section[data-testid="stSidebar"] {{
+    color: var(--telco-text) !important;
+    color-scheme: {"dark" if theme == "dark" else "light"};
+}}
+div[data-baseweb="base-input"],
+div[data-baseweb="select"] > div,
+div[data-baseweb="input"],
+.stNumberInput div[data-baseweb="input"] > div,
+.stSlider label, .stSlider p,
+input, textarea, select {{
+    background-color: var(--telco-surface) !important;
+    color: var(--telco-text) !important;
+    -webkit-text-fill-color: var(--telco-text) !important;
+    caret-color: var(--telco-text) !important;
+    border-color: var(--telco-surface-border) !important;
+}}
+[data-baseweb="popover"] ul,
+[data-baseweb="menu"],
+[role="listbox"],
+[data-baseweb="popover"] li {{
+    background-color: var(--telco-bg-2) !important;
+    color: var(--telco-text) !important;
+}}
+[data-testid="stMetricValue"],
+[data-testid="stWidgetLabel"] *,
+.stMarkdown p, .stMarkdown li, .stMarkdown span {{
+    color: var(--telco-text) !important;
+}}
+.prediction-card, .prediction-card * {{
+    color: var(--telco-text) !important;
+}}
+.section-header {{
+    color: var(--telco-text) !important;
+}}
+.goog-te-banner-frame, .skiptranslate iframe.goog-te-banner-frame {{ display: none !important; }}
+body {{ top: 0 !important; }}
+.goog-logo-link, .goog-te-gadget span {{ display: none !important; }}
+.goog-te-gadget {{ font-size: 0 !important; }}
+#google_translate_element select {{
+    font-size: 0.85rem !important;
+    min-height: 36px;
+    color: var(--telco-text) !important;
+    background: var(--telco-surface) !important;
+}}
+
 @media (max-width: 768px) {{
     .block-container {{
         padding-left: 0.85rem !important;
@@ -367,6 +415,7 @@ TELCO_I18N = {
         "about": "About the App",
         "model_info": "Model Information",
         "section_customer": "Customer Information",
+        "translate": "Translate",
     },
     "sv": {
         "lang": "Språk",
@@ -383,6 +432,7 @@ TELCO_I18N = {
         "about": "Om appen",
         "model_info": "Modellinformation",
         "section_customer": "Kundinformation",
+        "translate": "Översätt",
     },
 }
 
@@ -739,6 +789,9 @@ def main():
             """,
             unsafe_allow_html=True,
         )
+        st.markdown(f"### {tt('translate')}")
+        inject_google_translate(page_language="en")
+
         st.markdown(f"### {tt('lang')}")
         lang_choice = st.radio(
             tt("lang"),
@@ -758,7 +811,8 @@ def main():
             horizontal=True,
             key="telco_theme_radio",
         )
-        st.session_state[THEME_KEY] = "dark" if theme_choice == tt("dark") else "light"
+        # Compare against fixed English keys stored separately to avoid label flicker
+        st.session_state[THEME_KEY] = "dark" if theme_choice in (tt("dark"), "Dark", "Mörkt") else "light"
 
         st.markdown(f"### {tt('nav')}")
         page = st.radio(
