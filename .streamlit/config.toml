@@ -1,8 +1,12 @@
+# Dark base so Streamlit widgets stay readable even if custom CSS inject lags.
+# In-app Light/Dark still overrides via parent CSS.
+
 [theme]
-primaryColor = "#0d9488"
-backgroundColor = "#f1f5f9"
-secondaryBackgroundColor = "#e2e8f0"
-textColor = "#0f172a"
+base = "dark"
+primaryColor = "#5eead4"
+backgroundColor = "#060b14"
+secondaryBackgroundColor = "#121a2b"
+textColor = "#e8eef8"
 font = "sans serif"
 
 [server]
@@ -13,3 +17,6 @@ port = 8501
 
 [browser]
 gatherUsageStats = false
+
+[client]
+toolbarMode = "minimal"

@@ -9,11 +9,10 @@ import streamlit.components.v1 as components
 
 
 def inject_parent_css(css: str, *, style_id: str = "sf-parent-css") -> None:
-    """Append/replace a <style> tag on window.parent.document.head.
+    """Write a <style> tag on window.parent.document.head.
 
-    Also mirrors the CSS via a tiny markdown <style> fallback for hosts where
-    the component iframe cannot touch parent (rare), and re-applies once after
-    a short delay so Emotion styles that mount later lose the race.
+    IMPORTANT: height/width must be >= 1 — zero-size iframes often never run
+    their scripts on Streamlit Cloud, which left themes/translate broken.
     """
     payload = json.dumps(css)
     sid = json.dumps(style_id)
@@ -38,33 +37,56 @@ def inject_parent_css(css: str, *, style_id: str = "sf-parent-css") -> None:
     try {{ parentDoc = window.parent && window.parent.document; }} catch (e) {{ parentDoc = null; }}
     write(parentDoc);
     write(document);
-    // Re-assert after Streamlit Emotion styles land
-    setTimeout(function () {{ write(parentDoc); }}, 300);
-    setTimeout(function () {{ write(parentDoc); }}, 1200);
+    setTimeout(function () {{ write(parentDoc); }}, 200);
+    setTimeout(function () {{ write(parentDoc); }}, 800);
+    setTimeout(function () {{ write(parentDoc); }}, 2000);
   }} catch (e) {{
     console && console.warn && console.warn('inject_parent_css failed', e);
   }}
 }})();
 </script>
 """,
-        height=0,
-        width=0,
+        height=1,
+        width=1,
     )
 
-    # Extra fallback: some Streamlit builds still honor <style> in markdown
-    try:
-        st.markdown(
-            f"<style id=\"{style_id}-md\">{css}</style>",
-            unsafe_allow_html=True,
-        )
-    except Exception:
-        pass
 
-
-def inject_parent_js(js: str, *, height: int = 0) -> None:
+def inject_parent_js(js: str, *, height: int = 1) -> None:
     """Run JS with access to window.parent (Streamlit app DOM)."""
     components.html(
         f"<script>(function(){{try{{{js}\n}}catch(e){{console.warn(e);}}}})();</script>",
-        height=height,
-        width=0,
+        height=max(1, height),
+        width=1,
+    )
+
+
+def inject_react_dom_patch() -> None:
+    """Prevent Google Translate + React removeChild / insertBefore crashes."""
+    inject_parent_js(
+        """
+var win = window.parent || window;
+if (win.__sfDomPatch) return;
+win.__sfDomPatch = true;
+var doc = win.document;
+function patch(proto, name) {
+  var original = proto[name];
+  if (!original || original.__sfPatched) return;
+  var wrapped = function (a, b) {
+    try {
+      if (name === 'removeChild') {
+        if (a && a.parentNode !== this) return a;
+      } else if (name === 'insertBefore') {
+        if (b && b.parentNode !== this) return a;
+      }
+      return original.call(this, a, b);
+    } catch (e) {
+      return a;
+    }
+  };
+  wrapped.__sfPatched = true;
+  proto[name] = wrapped;
+}
+patch(win.Node.prototype, 'removeChild');
+patch(win.Node.prototype, 'insertBefore');
+"""
     )

@@ -12,8 +12,8 @@ import plotly.express as px
 import numpy as np
 from datetime import datetime
 
-from google_translate import inject_google_translate, render_translate_sidebar
-from streamlit_parent_inject import inject_parent_css
+from google_translate import render_translate_sidebar
+from streamlit_parent_inject import inject_parent_css, inject_react_dom_patch
 from streamlit_theme_force import inject_theme_force
 from streamlit_theme_widgets import inject_widget_theme, streamlit_widget_theme_css
 
@@ -47,51 +47,64 @@ st.set_page_config(
 )
 
 THEME_KEY = "telco_ui_theme"
+APP_BUILD = "lux-2026-09-28"
 
 
 def inject_telco_theme(theme: str) -> None:
-    """In-app light/dark theme injected into the parent DOM (not sandboxed st.html)."""
+    """Luxury light/dark theme — parent DOM inject (not sandboxed st.html)."""
     if theme == "dark":
         vars_block = """
 :root, .stApp, [data-testid="stAppViewContainer"] {
-  --telco-bg-1: #070d16;
-  --telco-bg-2: #0f172a;
-  --telco-surface: rgba(30, 41, 59, 0.92);
-  --telco-surface-border: rgba(148, 163, 184, 0.22);
-  --telco-text: #f1f5f9;
-  --telco-text-muted: #94a3b8;
-  --telco-accent: #2dd4bf;
-  --telco-accent-soft: rgba(45, 212, 191, 0.14);
-  --telco-navy: #e2e8f0;
-  --telco-shadow: 0 18px 48px rgba(0, 0, 0, 0.5);
-  --telco-hero-glow: rgba(45, 212, 191, 0.2);
+  --telco-bg-1: #05080f;
+  --telco-bg-2: #0b1220;
+  --telco-bg-3: #121a2b;
+  --telco-surface: rgba(18, 26, 43, 0.94);
+  --telco-surface-2: #1a2438;
+  --telco-surface-border: rgba(94, 234, 212, 0.18);
+  --telco-text: #eef3fb;
+  --telco-text-muted: #9aabbf;
+  --telco-accent: #5eead4;
+  --telco-accent-2: #38bdf8;
+  --telco-accent-soft: rgba(94, 234, 212, 0.12);
+  --telco-champagne: #e8d5a3;
+  --telco-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  --telco-hero-glow: rgba(94, 234, 212, 0.18);
+  --telco-field-bg: #161f33;
+  --telco-field-border: rgba(148, 163, 184, 0.35);
 }
 """
     else:
         vars_block = """
 :root, .stApp, [data-testid="stAppViewContainer"] {
-  --telco-bg-1: #eef4f8;
-  --telco-bg-2: #dde7f0;
-  --telco-surface: rgba(255, 255, 255, 0.94);
-  --telco-surface-border: rgba(15, 23, 42, 0.09);
-  --telco-text: #0f172a;
-  --telco-text-muted: #475569;
+  --telco-bg-1: #f3f7fb;
+  --telco-bg-2: #e7eef6;
+  --telco-bg-3: #d9e4f0;
+  --telco-surface: rgba(255, 255, 255, 0.92);
+  --telco-surface-2: #ffffff;
+  --telco-surface-border: rgba(15, 55, 90, 0.12);
+  --telco-text: #0b1b2e;
+  --telco-text-muted: #4a6078;
   --telco-accent: #0f766e;
-  --telco-accent-soft: rgba(15, 118, 110, 0.14);
-  --telco-navy: #1e3a5f;
-  --telco-shadow: 0 14px 40px rgba(15, 23, 42, 0.1);
-  --telco-hero-glow: rgba(15, 118, 110, 0.22);
+  --telco-accent-2: #0369a1;
+  --telco-accent-soft: rgba(15, 118, 110, 0.12);
+  --telco-champagne: #8a6d2f;
+  --telco-shadow: 0 18px 48px rgba(12, 40, 72, 0.12);
+  --telco-hero-glow: rgba(15, 118, 110, 0.16);
+  --telco-field-bg: #ffffff;
+  --telco-field-border: rgba(15, 55, 90, 0.18);
 }
 """
 
     base = """
 .stApp {
   background:
-    radial-gradient(ellipse 85% 50% at 50% -12%, var(--telco-hero-glow), transparent 58%),
-    linear-gradient(155deg, var(--telco-bg-1) 0%, var(--telco-bg-2) 52%, var(--telco-bg-1) 100%);
+    radial-gradient(ellipse 70% 40% at 10% 0%, var(--telco-hero-glow), transparent 55%),
+    radial-gradient(ellipse 55% 35% at 95% 5%, rgba(56,189,248,0.12), transparent 50%),
+    linear-gradient(165deg, var(--telco-bg-1) 0%, var(--telco-bg-2) 48%, var(--telco-bg-3) 100%);
   color: var(--telco-text) !important;
+  color-scheme: inherit;
 }
-.block-container { padding-top: 1.35rem; max-width: 1180px; }
+.block-container { padding-top: 1.15rem; padding-bottom: 3rem; max-width: 1180px; }
 [data-testid="stHeader"] { background: transparent !important; }
 [data-testid="stHeader"] button, [data-testid="stHeader"] span,
 [data-testid="stSidebarCollapsedControl"] button, [data-testid="stSidebarCollapsedControl"] span,
@@ -99,7 +112,7 @@ def inject_telco_theme(theme: str) -> None:
   color: var(--telco-text) !important; -webkit-text-fill-color: var(--telco-text) !important;
 }
 [data-testid="stSidebar"] {
-  background: linear-gradient(180deg, var(--telco-bg-2) 0%, var(--telco-bg-1) 100%);
+  background: linear-gradient(185deg, var(--telco-bg-3) 0%, var(--telco-bg-1) 100%);
   border-right: 1px solid var(--telco-surface-border);
 }
 [data-testid="stSidebar"] .stMarkdown p,
@@ -108,10 +121,9 @@ def inject_telco_theme(theme: str) -> None:
 [data-testid="stSidebar"] span {
   color: var(--telco-text) !important;
   -webkit-text-fill-color: var(--telco-text) !important;
-  font-family: 'DM Sans', system-ui, sans-serif;
+  font-family: 'Outfit', system-ui, sans-serif;
   opacity: 1 !important;
 }
-/* Keep Streamlit's Material icon font intact (otherwise icon names render as text) */
 [data-testid="stIconMaterial"],
 .material-symbols-rounded,
 span[class*="material-symbols"],
@@ -124,73 +136,140 @@ span[class*="material-symbols"],
   text-transform: none !important;
   font-feature-settings: 'liga' !important;
 }
+
+/* —— Luxury hero —— */
 .telco-hero {
-  text-align: center; padding: 2.15rem 1.5rem 2.35rem; margin-bottom: 1.5rem;
-  border-radius: 8px; background: var(--telco-surface);
-  border: 1px solid var(--telco-surface-border); box-shadow: var(--telco-shadow);
   position: relative; overflow: hidden;
+  text-align: left; padding: 2.4rem 2.2rem 2.5rem; margin-bottom: 1.6rem;
+  border-radius: 18px; background: var(--telco-surface);
+  border: 1px solid var(--telco-surface-border); box-shadow: var(--telco-shadow);
 }
 .telco-hero::before {
-  content: ""; position: absolute; inset: 0;
-  background: radial-gradient(ellipse 80% 60% at 50% -20%, var(--telco-hero-glow), transparent 70%);
+  content: ""; position: absolute; inset: -20% -10% auto auto; width: 52%; height: 140%;
+  background:
+    radial-gradient(circle at 70% 40%, var(--telco-hero-glow), transparent 62%),
+    conic-gradient(from 210deg at 60% 50%, transparent 0deg, rgba(94,234,212,0.08) 60deg, transparent 140deg);
   pointer-events: none;
 }
+.telco-kicker {
+  font-family: 'Outfit', system-ui, sans-serif; font-size: 0.72rem; font-weight: 600;
+  letter-spacing: 0.22em; text-transform: uppercase; color: var(--telco-accent); margin: 0 0 0.7rem;
+  position: relative;
+}
 .main-header {
-  font-family: 'Instrument Serif', Georgia, serif; font-size: 2.55rem; font-weight: 400;
-  letter-spacing: -0.01em; color: var(--telco-text); margin: 0 0 0.4rem 0; position: relative;
+  font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(2.4rem, 4.5vw, 3.35rem);
+  font-weight: 600; letter-spacing: -0.02em; color: var(--telco-text); margin: 0 0 0.55rem; position: relative;
+  line-height: 1.05;
 }
+.main-header em { font-style: italic; color: var(--telco-champagne); font-weight: 500; }
 .hero-subtitle {
-  font-family: 'DM Sans', system-ui, sans-serif; font-size: 1.05rem;
-  color: var(--telco-text-muted); margin: 0; position: relative;
+  font-family: 'Outfit', system-ui, sans-serif; font-size: 1.05rem; max-width: 38rem;
+  color: var(--telco-text-muted); margin: 0; position: relative; line-height: 1.55;
 }
-.hero-accent-line {
-  width: 72px; height: 2px; margin: 1.1rem auto 0;
-  background: linear-gradient(90deg, transparent, var(--telco-accent), transparent); position: relative;
+.hero-meta {
+  display: flex; flex-wrap: wrap; gap: 0.55rem; margin-top: 1.25rem; position: relative;
+}
+.hero-chip {
+  font-family: 'Outfit', system-ui, sans-serif; font-size: 0.75rem; font-weight: 500;
+  padding: 0.35rem 0.75rem; border-radius: 999px;
+  border: 1px solid var(--telco-surface-border); color: var(--telco-text-muted);
+  background: var(--telco-accent-soft);
 }
 .section-header {
-  font-family: 'Instrument Serif', Georgia, serif; font-size: 1.55rem; font-weight: 400;
-  color: var(--telco-text) !important; margin: 1.85rem 0 1rem 0; padding-bottom: 0.55rem;
-  border-bottom: 1px solid var(--telco-accent-soft); position: relative;
+  font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1.75rem; font-weight: 600;
+  color: var(--telco-text) !important; margin: 1.6rem 0 0.85rem 0; padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--telco-surface-border); position: relative;
 }
 .section-header::after {
-  content: ""; position: absolute; left: 0; bottom: -1px; width: 56px; height: 2px;
-  background: var(--telco-accent);
+  content: ""; position: absolute; left: 0; bottom: -1px; width: 64px; height: 2px;
+  background: linear-gradient(90deg, var(--telco-accent), var(--telco-accent-2));
+}
+.form-panel {
+  background: var(--telco-surface); border: 1px solid var(--telco-surface-border);
+  border-radius: 16px; padding: 1.15rem 1.25rem 0.85rem; margin: 0.75rem 0 1.1rem;
+  box-shadow: var(--telco-shadow);
+}
+.form-panel-title {
+  font-family: 'Outfit', system-ui, sans-serif; font-size: 0.78rem; font-weight: 600;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--telco-accent); margin: 0 0 0.85rem;
 }
 .prediction-card {
-  background: var(--telco-surface); padding: 2rem 2rem 1.5rem; border-radius: 8px;
+  background: var(--telco-surface); padding: 2rem 2rem 1.5rem; border-radius: 16px;
   box-shadow: var(--telco-shadow); margin: 1.25rem 0; border: 1px solid var(--telco-surface-border);
   color: var(--telco-text) !important;
 }
-.sidebar-brand { padding: 1rem 0.25rem 1.25rem; margin-bottom: 0.5rem; border-bottom: 1px solid var(--telco-surface-border); }
-.sidebar-brand-title { font-family: 'Instrument Serif', Georgia, serif; font-size: 1.25rem; color: var(--telco-text); margin: 0; }
-.sidebar-brand-tag { font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--telco-accent); margin: 0.3rem 0 0; }
+.sidebar-brand { padding: 0.85rem 0.15rem 1.1rem; margin-bottom: 0.35rem; border-bottom: 1px solid var(--telco-surface-border); }
+.sidebar-brand-title { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1.45rem; color: var(--telco-text); margin: 0; }
+.sidebar-brand-tag { font-family: 'Outfit', system-ui, sans-serif; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.16em; color: var(--telco-accent); margin: 0.35rem 0 0; }
+.sidebar-build { font-family: 'Outfit', system-ui, sans-serif; font-size: 0.65rem; color: var(--telco-text-muted); margin: 0.45rem 0 0; opacity: 0.75; }
 .risk-critical, .risk-high, .risk-medium, .risk-low {
-  color: #fff; padding: 1rem 1.25rem; border-radius: 8px; text-align: center; font-weight: 700;
-  letter-spacing: 0.04em; font-family: 'DM Sans', system-ui, sans-serif;
+  color: #fff; padding: 1rem 1.25rem; border-radius: 12px; text-align: center; font-weight: 700;
+  letter-spacing: 0.06em; font-family: 'Outfit', system-ui, sans-serif;
 }
-.risk-critical { background: linear-gradient(135deg, #b91c1c, #991b1b); }
+.risk-critical { background: linear-gradient(135deg, #b91c1c, #7f1d1d); }
 .risk-high { background: linear-gradient(135deg, #c2410c, #9a3412); }
 .risk-medium { background: linear-gradient(135deg, #0e7490, #155e75); }
 .risk-low { background: linear-gradient(135deg, #0d9488, #0f766e); }
 div[data-testid="stMetric"] {
   background: var(--telco-surface); border: 1px solid var(--telco-surface-border);
-  border-radius: 8px; padding: 0.75rem 1rem; box-shadow: var(--telco-shadow);
+  border-radius: 14px; padding: 0.85rem 1rem; box-shadow: var(--telco-shadow);
 }
-div[data-testid="stMetric"] label { color: var(--telco-accent) !important; font-family: 'DM Sans', system-ui, sans-serif !important; }
+div[data-testid="stMetric"] label { color: var(--telco-accent) !important; font-family: 'Outfit', system-ui, sans-serif !important; }
 .stButton > button[kind="primary"] {
-  background: linear-gradient(135deg, #0f766e, #115e59) !important; border: none !important;
-  border-radius: 8px !important; font-family: 'DM Sans', system-ui, sans-serif !important; font-weight: 600 !important;
+  background: linear-gradient(135deg, #0f766e, #0e7490) !important; border: none !important;
+  border-radius: 12px !important; font-family: 'Outfit', system-ui, sans-serif !important;
+  font-weight: 650 !important; min-height: 48px !important; letter-spacing: 0.02em;
+  box-shadow: 0 10px 28px rgba(15, 118, 110, 0.28) !important;
+}
+
+/* —— Nuclear widget contrast (fixes white fields / missing labels) —— */
+[data-testid="stWidgetLabel"],
+[data-testid="stWidgetLabel"] *,
+.stSelectbox label, .stSelectbox label *,
+.stSlider label, .stSlider label *,
+.stNumberInput label, .stNumberInput label *,
+.stRadio label, .stRadio label *,
+.stMultiSelect label, .stMultiSelect label * {
+  color: var(--telco-text) !important;
+  -webkit-text-fill-color: var(--telco-text) !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+.stTextInput input, .stNumberInput input, .stTextArea textarea,
+div[data-baseweb="select"] > div,
+div[data-baseweb="base-input"],
+div[data-baseweb="input"],
+div[data-baseweb="input"] > div,
+[data-baseweb="input"] input,
+.stApp input, .stApp textarea, .stApp select {
+  background-color: var(--telco-field-bg) !important;
+  background-image: none !important;
+  color: var(--telco-text) !important;
+  -webkit-text-fill-color: var(--telco-text) !important;
+  border-color: var(--telco-field-border) !important;
+  caret-color: var(--telco-text) !important;
+}
+div[data-baseweb="select"] span,
+div[data-baseweb="select"] div {
+  color: var(--telco-text) !important;
+  -webkit-text-fill-color: var(--telco-text) !important;
+}
+[data-baseweb="popover"], [data-baseweb="menu"], [role="listbox"], [role="option"],
+body > div[data-baseweb="popover"], body > div[data-baseweb="popover"] * {
+  background-color: var(--telco-surface-2) !important;
+  color: var(--telco-text) !important;
+  -webkit-text-fill-color: var(--telco-text) !important;
 }
 @media (max-width: 768px) {
   .block-container { padding-left: 0.85rem !important; padding-right: 0.85rem !important; max-width: 100% !important; }
-  .telco-hero { padding: 1.35rem 1rem 1.5rem; }
-  .main-header { font-size: clamp(1.7rem, 8vw, 2.2rem); }
+  .telco-hero { padding: 1.4rem 1.15rem 1.55rem; border-radius: 14px; }
+  .main-header { font-size: clamp(1.85rem, 8vw, 2.4rem); }
   .stButton > button { min-height: 44px !important; width: 100%; }
   div[data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; }
 }
 """
     css = (
-        "@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap');\n"
+        "@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Outfit:wght@400;500;600;700&display=swap');\n"
         + vars_block
         + base
         + streamlit_widget_theme_css(theme, prefix="telco")
@@ -209,12 +288,12 @@ def tt(key: str) -> str:
         "nav": "Navigation",
         "page_pred": "Customer Prediction",
         "page_risk": "Risk Explorer",
-        "hero": "Telco Churn Prediction",
-        "hero_sub": "ML-powered retention insights for telecommunications customers",
-        "predict": "Predict Churn",
+        "hero": "Telco Churn <em>Atelier</em>",
+        "hero_sub": "A calm workspace to score individual churn risk and explore who needs attention next.",
+        "predict": "Predict churn risk",
         "about": "About the App",
         "model_info": "Model Information",
-        "section_customer": "Customer Information",
+        "section_customer": "Customer profile",
         "translate": "Translate",
     }
     return en.get(key, key)
@@ -232,96 +311,66 @@ def load_model_and_info():
         return None, None
 
 def themed_ink() -> str:
-    return "#f1f5f9" if st.session_state.get(THEME_KEY) == "dark" else "#0f172a"
-
-
-def field_label(text: str) -> None:
-    """Markdown label with forced ink — survives Emotion light-mode defaults in dark UI."""
-    st.markdown(
-        f'<p style="color:{themed_ink()}!important;-webkit-text-fill-color:{themed_ink()}!important;'
-        f'font-weight:600;font-size:0.88rem;margin:0.4rem 0 0.2rem 0;opacity:1!important;">{text}</p>',
-        unsafe_allow_html=True,
-    )
-
-
-def themed_select(label: str, options, **kwargs):
-    field_label(label)
-    return st.selectbox(label, options, label_visibility="collapsed", **kwargs)
-
-
-def themed_slider(label: str, *args, **kwargs):
-    field_label(label)
-    return st.slider(label, *args, label_visibility="collapsed", **kwargs)
-
-
-def themed_number(label: str, *args, **kwargs):
-    field_label(label)
-    return st.number_input(label, *args, label_visibility="collapsed", **kwargs)
+    return "#eef3fb" if st.session_state.get(THEME_KEY) == "dark" else "#0b1b2e"
 
 
 def create_complete_input_form():
-    """Create complete input form with all features in correct order"""
+    """Luxury customer form — native Streamlit labels (always readable with dark base theme)."""
     st.markdown(f'<div class="section-header">{tt("section_customer")}</div>', unsafe_allow_html=True)
+    st.caption("Fill in the profile — predictions update from the same features the model was trained on.")
 
-    ink = themed_ink()
-    st.markdown(
-        f'<p style="color:{ink}!important;font-weight:700;margin:0.75rem 0 0.35rem;">Personal Information</p>',
-        unsafe_allow_html=True,
-    )
+    st.markdown('<div class="form-panel"><p class="form-panel-title">01 · Personal</p></div>', unsafe_allow_html=True)
     col1, col2, col3 = st.columns(3)
-
     with col1:
-        gender = themed_select("Gender", ["Male", "Female"], key="telco_gender")
-        senior_citizen = themed_select("Senior Citizen", ["Yes", "No"], key="telco_senior")
-        partner = themed_select("Partner", ["Yes", "No"], key="telco_partner")
-        dependents = themed_select("Dependents", ["Yes", "No"], key="telco_dependents")
-
+        gender = st.selectbox("Gender", ["Male", "Female"], key="telco_gender")
+        senior_citizen = st.selectbox("Senior Citizen", ["Yes", "No"], key="telco_senior")
     with col2:
-        tenure = themed_slider("Tenure (months)", 0, 72, 12, key="telco_tenure")
-        phone_service = themed_select("Phone Service", ["Yes", "No"], key="telco_phone")
-        multiple_lines = themed_select(
+        partner = st.selectbox("Partner", ["Yes", "No"], key="telco_partner")
+        dependents = st.selectbox("Dependents", ["Yes", "No"], key="telco_dependents")
+    with col3:
+        tenure = st.slider("Tenure (months)", 0, 72, 12, key="telco_tenure")
+
+    st.markdown('<div class="form-panel"><p class="form-panel-title">02 · Connectivity</p></div>', unsafe_allow_html=True)
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        phone_service = st.selectbox("Phone Service", ["Yes", "No"], key="telco_phone")
+        multiple_lines = st.selectbox(
             "Multiple Lines", ["Yes", "No", "No phone service"], key="telco_multi"
         )
-        internet_service = themed_select(
+    with col2:
+        internet_service = st.selectbox(
             "Internet Service", ["DSL", "Fiber optic", "No"], key="telco_internet"
         )
-
-    with col3:
-        online_security = themed_select(
+        online_security = st.selectbox(
             "Online Security", ["Yes", "No", "No internet service"], key="telco_os"
         )
-        online_backup = themed_select(
+    with col3:
+        online_backup = st.selectbox(
             "Online Backup", ["Yes", "No", "No internet service"], key="telco_ob"
         )
-        device_protection = themed_select(
+        device_protection = st.selectbox(
             "Device Protection", ["Yes", "No", "No internet service"], key="telco_dp"
         )
-        tech_support = themed_select(
+
+    st.markdown('<div class="form-panel"><p class="form-panel-title">03 · Services & billing</p></div>', unsafe_allow_html=True)
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        tech_support = st.selectbox(
             "Tech Support", ["Yes", "No", "No internet service"], key="telco_ts"
         )
-
-    st.markdown(
-        f'<p style="color:{ink}!important;font-weight:700;margin:0.75rem 0 0.35rem;">Services</p>',
-        unsafe_allow_html=True,
-    )
-    col4, col5, col6 = st.columns(3)
-
-    with col4:
-        streaming_tv = themed_select(
+        streaming_tv = st.selectbox(
             "Streaming TV", ["Yes", "No", "No internet service"], key="telco_stv"
         )
-        streaming_movies = themed_select(
+    with col2:
+        streaming_movies = st.selectbox(
             "Streaming Movies", ["Yes", "No", "No internet service"], key="telco_sm"
         )
-
-    with col5:
-        contract = themed_select(
+        contract = st.selectbox(
             "Contract", ["Month-to-month", "One year", "Two year"], key="telco_contract"
         )
-        paperless_billing = themed_select("Paperless Billing", ["Yes", "No"], key="telco_paper")
-
-    with col6:
-        payment_method = themed_select(
+    with col3:
+        paperless_billing = st.selectbox("Paperless Billing", ["Yes", "No"], key="telco_paper")
+        payment_method = st.selectbox(
             "Payment Method",
             [
                 "Electronic check",
@@ -332,25 +381,18 @@ def create_complete_input_form():
             key="telco_pay",
         )
 
-    st.markdown(
-        f'<p style="color:{ink}!important;font-weight:700;margin:0.75rem 0 0.35rem;">Charges</p>',
-        unsafe_allow_html=True,
-    )
+    st.markdown('<div class="form-panel"><p class="form-panel-title">04 · Charges</p></div>', unsafe_allow_html=True)
     col7, col8 = st.columns(2)
-
     with col7:
-        monthly_charges = themed_slider(
+        monthly_charges = st.slider(
             "Monthly Charges ($)", 0.0, 200.0, 50.0, 1.0, key="telco_monthly"
         )
     with col8:
-        total_charges = themed_number(
+        total_charges = st.number_input(
             "Total Charges ($)", 0.0, 10000.0, 1000.0, 10.0, key="telco_total"
         )
 
-    # Convert Senior Citizen to numeric
     senior_citizen_numeric = 1 if senior_citizen == "Yes" else 0
-
-    # Create customer data in exact same order as model expects
     customer_data = pd.DataFrame({
         'gender': [gender],
         'SeniorCitizen': [senior_citizen_numeric],
@@ -372,11 +414,8 @@ def create_complete_input_form():
         'MonthlyCharges': [monthly_charges],
         'TotalCharges': [total_charges]
     })
-
-    # Add feature engineering
     customer_data['TenureGroup'] = customer_data['tenure'].apply(tenure_group)
     customer_data['ChargesGroup'] = customer_data['MonthlyCharges'].apply(charges_group)
-
     return customer_data
 
 def predict_churn(model, customer_data):
@@ -614,14 +653,16 @@ def main():
     if THEME_KEY not in st.session_state:
         st.session_state[THEME_KEY] = "dark"
 
+    inject_react_dom_patch()
     model, model_info = load_model_and_info()
 
     with st.sidebar:
         st.markdown(
-            """
+            f"""
             <div class="sidebar-brand">
                 <p class="sidebar-brand-title">Telco Retention</p>
                 <p class="sidebar-brand-tag">Churn intelligence</p>
+                <p class="sidebar-build">build {APP_BUILD}</p>
             </div>
             """,
             unsafe_allow_html=True,
@@ -671,18 +712,22 @@ def main():
                 test_acc = model_info.get("test_accuracy", 0.728)
                 st.markdown(f"**Performance Gap:** {test_acc - val_acc:.1%}")
 
-    # Single theme pass after sidebar (avoids flash from double inject)
     theme = st.session_state[THEME_KEY]
     inject_telco_theme(theme)
     inject_widget_theme(theme, prefix="telco")
-    inject_theme_force(theme, accent="#2dd4bf", accent_fg="#042f2e")
+    inject_theme_force(theme, accent="#5eead4", accent_fg="#042f2e")
 
     st.markdown(
         f"""
         <div class="telco-hero">
+            <p class="telco-kicker">Retention desk</p>
             <div class="main-header">{tt("hero")}</div>
             <p class="hero-subtitle">{tt("hero_sub")}</p>
-            <div class="hero-accent-line"></div>
+            <div class="hero-meta">
+              <span class="hero-chip">Random Forest</span>
+              <span class="hero-chip">7,043 customers</span>
+              <span class="hero-chip">Live risk explorer</span>
+            </div>
         </div>
         """,
         unsafe_allow_html=True,
