@@ -221,9 +221,8 @@ def streamlit_widget_theme_css(theme: str, *, prefix: str = "app") -> str:
 
 
 def inject_widget_theme(theme: str, *, prefix: str = "app") -> None:
-    """Inject widget CSS so it applies to the real app DOM (not only a sandboxed block)."""
-    import streamlit as st
+    """Inject widget CSS into the parent Streamlit document."""
+    from streamlit_parent_inject import inject_parent_css
 
     css = streamlit_widget_theme_css(theme, prefix=prefix)
-    # st.markdown keeps <style> in the main document; Emotion cannot hide labels again.
-    st.markdown(f"<style id='sf-{prefix}-widgets'>{css}</style>", unsafe_allow_html=True)
+    inject_parent_css(css, style_id=f"sf-{prefix}-widgets")

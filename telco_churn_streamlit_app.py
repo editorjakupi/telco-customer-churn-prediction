@@ -12,7 +12,8 @@ import plotly.express as px
 import numpy as np
 from datetime import datetime
 
-from google_translate import inject_google_translate
+from google_translate import inject_google_translate, render_translate_sidebar
+from streamlit_parent_inject import inject_parent_css
 from streamlit_theme_force import inject_theme_force
 from streamlit_theme_widgets import inject_widget_theme, streamlit_widget_theme_css
 
@@ -49,283 +50,135 @@ THEME_KEY = "telco_ui_theme"
 
 
 def inject_telco_theme(theme: str) -> None:
-    """In-app light/dark theme (same idea as SmartFood / Diamonds)."""
+    """In-app light/dark theme injected into the parent DOM (not sandboxed st.html)."""
     if theme == "dark":
         vars_block = """
-        :root, .stApp, [data-testid="stAppViewContainer"] {
-            --telco-bg-1: #070d16;
-            --telco-bg-2: #0f172a;
-            --telco-surface: rgba(30, 41, 59, 0.78);
-            --telco-surface-border: rgba(148, 163, 184, 0.14);
-            --telco-text: #f1f5f9;
-            --telco-text-muted: #94a3b8;
-            --telco-accent: #2dd4bf;
-            --telco-accent-soft: rgba(45, 212, 191, 0.14);
-            --telco-navy: #e2e8f0;
-            --telco-shadow: 0 18px 48px rgba(0, 0, 0, 0.5);
-            --telco-hero-glow: rgba(45, 212, 191, 0.2);
-        }
-        """
+:root, .stApp, [data-testid="stAppViewContainer"] {
+  --telco-bg-1: #070d16;
+  --telco-bg-2: #0f172a;
+  --telco-surface: rgba(30, 41, 59, 0.92);
+  --telco-surface-border: rgba(148, 163, 184, 0.22);
+  --telco-text: #f1f5f9;
+  --telco-text-muted: #94a3b8;
+  --telco-accent: #2dd4bf;
+  --telco-accent-soft: rgba(45, 212, 191, 0.14);
+  --telco-navy: #e2e8f0;
+  --telco-shadow: 0 18px 48px rgba(0, 0, 0, 0.5);
+  --telco-hero-glow: rgba(45, 212, 191, 0.2);
+}
+"""
     else:
         vars_block = """
-        :root, .stApp, [data-testid="stAppViewContainer"] {
-            --telco-bg-1: #eef4f8;
-            --telco-bg-2: #dde7f0;
-            --telco-surface: rgba(255, 255, 255, 0.9);
-            --telco-surface-border: rgba(15, 23, 42, 0.09);
-            --telco-text: #0f172a;
-            --telco-text-muted: #475569;
-            --telco-accent: #0f766e;
-            --telco-accent-soft: rgba(15, 118, 110, 0.14);
-            --telco-navy: #1e3a5f;
-            --telco-shadow: 0 14px 40px rgba(15, 23, 42, 0.1);
-            --telco-hero-glow: rgba(15, 118, 110, 0.22);
-        }
-        """
+:root, .stApp, [data-testid="stAppViewContainer"] {
+  --telco-bg-1: #eef4f8;
+  --telco-bg-2: #dde7f0;
+  --telco-surface: rgba(255, 255, 255, 0.94);
+  --telco-surface-border: rgba(15, 23, 42, 0.09);
+  --telco-text: #0f172a;
+  --telco-text-muted: #475569;
+  --telco-accent: #0f766e;
+  --telco-accent-soft: rgba(15, 118, 110, 0.14);
+  --telco-navy: #1e3a5f;
+  --telco-shadow: 0 14px 40px rgba(15, 23, 42, 0.1);
+  --telco-hero-glow: rgba(15, 118, 110, 0.22);
+}
+"""
 
-    markup = f"""
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
-<style>
-{vars_block}
-
-.stApp {{
-    background:
-      radial-gradient(ellipse 85% 50% at 50% -12%, var(--telco-hero-glow), transparent 58%),
-      linear-gradient(155deg, var(--telco-bg-1) 0%, var(--telco-bg-2) 52%, var(--telco-bg-1) 100%);
-}}
-
-.block-container {{
-    padding-top: 1.35rem;
-    max-width: 1180px;
-}}
-
-[data-testid="stSidebar"] {{
-    background: linear-gradient(180deg, var(--telco-bg-2) 0%, var(--telco-bg-1) 100%);
-    border-right: 1px solid var(--telco-surface-border);
-}}
-
+    base = """
+.stApp {
+  background:
+    radial-gradient(ellipse 85% 50% at 50% -12%, var(--telco-hero-glow), transparent 58%),
+    linear-gradient(155deg, var(--telco-bg-1) 0%, var(--telco-bg-2) 52%, var(--telco-bg-1) 100%);
+  color: var(--telco-text) !important;
+}
+.block-container { padding-top: 1.35rem; max-width: 1180px; }
+[data-testid="stSidebar"] {
+  background: linear-gradient(180deg, var(--telco-bg-2) 0%, var(--telco-bg-1) 100%);
+  border-right: 1px solid var(--telco-surface-border);
+}
 [data-testid="stSidebar"] .stMarkdown p,
 [data-testid="stSidebar"] .stMarkdown li,
-[data-testid="stSidebar"] label {{
-    color: var(--telco-text) !important;
-    font-family: 'DM Sans', system-ui, sans-serif;
-}}
-
-.telco-hero {{
-    text-align: center;
-    padding: 2.15rem 1.5rem 2.35rem;
-    margin-bottom: 1.5rem;
-    border-radius: 8px;
-    background: var(--telco-surface);
-    border: 1px solid var(--telco-surface-border);
-    box-shadow: var(--telco-shadow);
-    position: relative;
-    overflow: hidden;
-}}
-
-.telco-hero::before {{
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(ellipse 80% 60% at 50% -20%, var(--telco-hero-glow), transparent 70%);
-    pointer-events: none;
-}}
-
-.main-header {{
-    font-family: 'Instrument Serif', Georgia, serif;
-    font-size: 2.55rem;
-    font-weight: 400;
-    letter-spacing: -0.01em;
-    color: var(--telco-text);
-    margin: 0 0 0.4rem 0;
-    position: relative;
-}}
-
-.hero-subtitle {{
-    font-family: 'DM Sans', system-ui, sans-serif;
-    font-size: 1.05rem;
-    color: var(--telco-text-muted);
-    font-weight: 400;
-    margin: 0;
-    position: relative;
-}}
-
-.hero-accent-line {{
-    width: 72px;
-    height: 2px;
-    margin: 1.1rem auto 0;
-    background: linear-gradient(90deg, transparent, var(--telco-accent), transparent);
-    position: relative;
-}}
-
-.section-header {{
-    font-family: 'Instrument Serif', Georgia, serif;
-    font-size: 1.55rem;
-    font-weight: 400;
-    color: var(--telco-text);
-    margin: 1.85rem 0 1rem 0;
-    padding-bottom: 0.55rem;
-    border-bottom: 1px solid var(--telco-accent-soft);
-    position: relative;
-}}
-
-.section-header::after {{
-    content: "";
-    position: absolute;
-    left: 0;
-    bottom: -1px;
-    width: 56px;
-    height: 2px;
-    background: var(--telco-accent);
-}}
-
-.prediction-card {{
-    background: var(--telco-surface);
-    padding: 2rem 2rem 1.5rem;
-    border-radius: 8px;
-    box-shadow: var(--telco-shadow);
-    margin: 1.25rem 0;
-    border: 1px solid var(--telco-surface-border);
-    backdrop-filter: blur(12px);
-}}
-
-.sidebar-brand {{
-    padding: 1rem 0.25rem 1.25rem;
-    margin-bottom: 0.5rem;
-    border-bottom: 1px solid var(--telco-surface-border);
-}}
-
-.sidebar-brand-title {{
-    font-family: 'Instrument Serif', Georgia, serif;
-    font-size: 1.25rem;
-    font-weight: 400;
-    color: var(--telco-text);
-    margin: 0;
-}}
-
-.sidebar-brand-tag {{
-    font-family: 'DM Sans', system-ui, sans-serif;
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--telco-accent);
-    margin: 0.3rem 0 0;
-}}
-
-.risk-critical {{
-    background: linear-gradient(135deg, #b91c1c, #991b1b);
-    color: #fff;
-    padding: 1rem 1.25rem;
-    border-radius: 8px;
-    text-align: center;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    font-family: 'DM Sans', system-ui, sans-serif;
-    box-shadow: 0 8px 24px rgba(185, 28, 28, 0.35);
-}}
-
-.risk-high {{
-    background: linear-gradient(135deg, #c2410c, #9a3412);
-    color: #fff;
-    padding: 1rem 1.25rem;
-    border-radius: 8px;
-    text-align: center;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    font-family: 'DM Sans', system-ui, sans-serif;
-    box-shadow: 0 8px 24px rgba(194, 65, 12, 0.3);
-}}
-
-.risk-medium {{
-    background: linear-gradient(135deg, #0e7490, #155e75);
-    color: #fff;
-    padding: 1rem 1.25rem;
-    border-radius: 8px;
-    text-align: center;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    font-family: 'DM Sans', system-ui, sans-serif;
-    box-shadow: 0 8px 24px rgba(14, 116, 144, 0.3);
-}}
-
-.risk-low {{
-    background: linear-gradient(135deg, #0d9488, #0f766e);
-    color: #fff;
-    padding: 1rem 1.25rem;
-    border-radius: 8px;
-    text-align: center;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    font-family: 'DM Sans', system-ui, sans-serif;
-    box-shadow: 0 8px 24px rgba(13, 148, 136, 0.35);
-}}
-
-div[data-testid="stMetric"] {{
-    background: var(--telco-surface);
-    border: 1px solid var(--telco-surface-border);
-    border-radius: 8px;
-    padding: 0.75rem 1rem;
-    box-shadow: var(--telco-shadow);
-}}
-
-div[data-testid="stMetric"] label {{
-    color: var(--telco-accent) !important;
-    font-family: 'DM Sans', system-ui, sans-serif !important;
-}}
-
-.stButton > button[kind="primary"] {{
-    background: linear-gradient(135deg, #0f766e, #115e59) !important;
-    border: none !important;
-    border-radius: 8px !important;
-    font-family: 'DM Sans', system-ui, sans-serif !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.02em;
-    box-shadow: 0 6px 20px rgba(13, 148, 136, 0.35);
-}}
-
-.prediction-card, .section-header {{
-    color: var(--telco-text) !important;
-}}
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] span {
+  color: var(--telco-text) !important;
+  -webkit-text-fill-color: var(--telco-text) !important;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  opacity: 1 !important;
+}
+.telco-hero {
+  text-align: center; padding: 2.15rem 1.5rem 2.35rem; margin-bottom: 1.5rem;
+  border-radius: 8px; background: var(--telco-surface);
+  border: 1px solid var(--telco-surface-border); box-shadow: var(--telco-shadow);
+  position: relative; overflow: hidden;
+}
+.telco-hero::before {
+  content: ""; position: absolute; inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 50% -20%, var(--telco-hero-glow), transparent 70%);
+  pointer-events: none;
+}
+.main-header {
+  font-family: 'Instrument Serif', Georgia, serif; font-size: 2.55rem; font-weight: 400;
+  letter-spacing: -0.01em; color: var(--telco-text); margin: 0 0 0.4rem 0; position: relative;
+}
+.hero-subtitle {
+  font-family: 'DM Sans', system-ui, sans-serif; font-size: 1.05rem;
+  color: var(--telco-text-muted); margin: 0; position: relative;
+}
+.hero-accent-line {
+  width: 72px; height: 2px; margin: 1.1rem auto 0;
+  background: linear-gradient(90deg, transparent, var(--telco-accent), transparent); position: relative;
+}
+.section-header {
+  font-family: 'Instrument Serif', Georgia, serif; font-size: 1.55rem; font-weight: 400;
+  color: var(--telco-text) !important; margin: 1.85rem 0 1rem 0; padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--telco-accent-soft); position: relative;
+}
+.section-header::after {
+  content: ""; position: absolute; left: 0; bottom: -1px; width: 56px; height: 2px;
+  background: var(--telco-accent);
+}
+.prediction-card {
+  background: var(--telco-surface); padding: 2rem 2rem 1.5rem; border-radius: 8px;
+  box-shadow: var(--telco-shadow); margin: 1.25rem 0; border: 1px solid var(--telco-surface-border);
+  color: var(--telco-text) !important;
+}
+.sidebar-brand { padding: 1rem 0.25rem 1.25rem; margin-bottom: 0.5rem; border-bottom: 1px solid var(--telco-surface-border); }
+.sidebar-brand-title { font-family: 'Instrument Serif', Georgia, serif; font-size: 1.25rem; color: var(--telco-text); margin: 0; }
+.sidebar-brand-tag { font-family: 'DM Sans', system-ui, sans-serif; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--telco-accent); margin: 0.3rem 0 0; }
+.risk-critical, .risk-high, .risk-medium, .risk-low {
+  color: #fff; padding: 1rem 1.25rem; border-radius: 8px; text-align: center; font-weight: 700;
+  letter-spacing: 0.04em; font-family: 'DM Sans', system-ui, sans-serif;
+}
+.risk-critical { background: linear-gradient(135deg, #b91c1c, #991b1b); }
+.risk-high { background: linear-gradient(135deg, #c2410c, #9a3412); }
+.risk-medium { background: linear-gradient(135deg, #0e7490, #155e75); }
+.risk-low { background: linear-gradient(135deg, #0d9488, #0f766e); }
+div[data-testid="stMetric"] {
+  background: var(--telco-surface); border: 1px solid var(--telco-surface-border);
+  border-radius: 8px; padding: 0.75rem 1rem; box-shadow: var(--telco-shadow);
+}
+div[data-testid="stMetric"] label { color: var(--telco-accent) !important; font-family: 'DM Sans', system-ui, sans-serif !important; }
+.stButton > button[kind="primary"] {
+  background: linear-gradient(135deg, #0f766e, #115e59) !important; border: none !important;
+  border-radius: 8px !important; font-family: 'DM Sans', system-ui, sans-serif !important; font-weight: 600 !important;
+}
+@media (max-width: 768px) {
+  .block-container { padding-left: 0.85rem !important; padding-right: 0.85rem !important; max-width: 100% !important; }
+  .telco-hero { padding: 1.35rem 1rem 1.5rem; }
+  .main-header { font-size: clamp(1.7rem, 8vw, 2.2rem); }
+  .stButton > button { min-height: 44px !important; width: 100%; }
+  div[data-testid="stHorizontalBlock"] { flex-wrap: wrap !important; }
+}
 """
-    markup = markup + streamlit_widget_theme_css(theme, prefix="telco") + f"""
-@media (max-width: 768px) {{
-    .block-container {{
-        padding-left: 0.85rem !important;
-        padding-right: 0.85rem !important;
-        max-width: 100% !important;
-    }}
-    .telco-hero {{
-        padding: 1.35rem 1rem 1.5rem;
-    }}
-    .main-header {{
-        font-size: clamp(1.7rem, 8vw, 2.2rem);
-    }}
-    .hero-subtitle {{
-        font-size: 0.95rem;
-    }}
-    .prediction-card {{
-        padding: 1.25rem 1rem;
-    }}
-    .stButton > button {{
-        min-height: 44px !important;
-        width: 100%;
-    }}
-    div[data-testid="stHorizontalBlock"] {{
-        flex-wrap: wrap !important;
-    }}
-}}
-</style>
-        """
-    inject = getattr(st, "html", None)
-    if inject:
-        inject(markup)
-    else:
-        st.warning("Upgrade Streamlit (>=1.33) so theme CSS does not leak as text.")
+    css = (
+        "@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap');\n"
+        + vars_block
+        + base
+        + streamlit_widget_theme_css(theme, prefix="telco")
+    )
+    inject_parent_css(css, style_id="telco-theme-css")
 
 
-THEME_KEY = "telco_ui_theme"
 
 def tt(key: str) -> str:
     """English UI strings — Google Translate handles other languages."""
@@ -675,9 +528,12 @@ def display_risk_explorer(model):
 def main():
     """Main function"""
     if THEME_KEY not in st.session_state:
-        st.session_state[THEME_KEY] = "light"
+        st.session_state[THEME_KEY] = "dark"
 
-    # Load model first so sidebar can show accuracy
+    # Apply theme before widgets so labels/fields are not light-mode ink on dark bg
+    inject_telco_theme(st.session_state[THEME_KEY])
+    inject_theme_force(st.session_state[THEME_KEY], accent="#2dd4bf", accent_fg="#042f2e")
+
     model, model_info = load_model_and_info()
 
     with st.sidebar:
@@ -690,10 +546,6 @@ def main():
             """,
             unsafe_allow_html=True,
         )
-        st.markdown(f"### {tt('translate')}")
-        st.markdown('<div id="sf-gt-slot"></div>', unsafe_allow_html=True)
-        inject_google_translate(page_language="en")
-
         st.markdown(f"### {tt('theme')}")
         theme_choice = st.radio(
             tt("appearance"),
@@ -703,6 +555,8 @@ def main():
             key="telco_theme_radio",
         )
         st.session_state[THEME_KEY] = "dark" if theme_choice == "Dark" else "light"
+
+        render_translate_sidebar(page_language="en", theme=st.session_state[THEME_KEY])
 
         st.markdown(f"### {tt('nav')}")
         page = st.radio(
@@ -737,6 +591,11 @@ def main():
                 test_acc = model_info.get("test_accuracy", 0.728)
                 st.markdown(f"**Performance Gap:** {test_acc - val_acc:.1%}")
 
+    theme = st.session_state[THEME_KEY]
+    inject_telco_theme(theme)
+    inject_widget_theme(theme, prefix="telco")
+    inject_theme_force(theme, accent="#2dd4bf", accent_fg="#042f2e")
+
     st.markdown(
         f"""
         <div class="telco-hero">
@@ -759,12 +618,6 @@ def main():
             display_prediction(prediction, probability)
     elif page == tt("page_risk"):
         display_risk_explorer(model)
-
-    # Inject theme last so widget CSS/JS overrides Streamlit Emotion defaults
-    theme = st.session_state[THEME_KEY]
-    inject_telco_theme(theme)
-    inject_widget_theme(theme, prefix="telco")
-    inject_theme_force(theme, accent="#2dd4bf", accent_fg="#042f2e")
 
 if __name__ == "__main__":
     main()
