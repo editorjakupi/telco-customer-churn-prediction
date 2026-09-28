@@ -1,7 +1,7 @@
 """Google Translate for Streamlit — custom HTML picker (not BaseWeb).
 
-Streamlit's dark config.toml makes BaseWeb select chevrons black-on-black in
-light mode. A native <select> we style ourselves avoids that entirely.
+Important: on Streamlit Cloud the component iframe's window.top is the outer
+shell (cross-origin). Always use window.parent (the app frame), never top.
 """
 
 from __future__ import annotations
@@ -46,7 +46,6 @@ def render_translate_sidebar(page_language: str = "en", *, theme: Optional[str] 
     fg = "#f8fafc" if is_dark else "#0f172a"
     border = "rgba(148,163,184,0.45)" if is_dark else "rgba(15,23,42,0.22)"
     label = "#94a3b8" if is_dark else "#475569"
-    # Explicit chevron via SVG data-URI so it never inherits Streamlit dark tokens
     chevron = (
         "data:image/svg+xml,"
         + "%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E"
@@ -107,20 +106,38 @@ def render_translate_sidebar(page_language: str = "en", *, theme: Optional[str] 
   var included = {included_js};
   var sel = document.getElementById('sf-lang');
 
-  function pDoc() {{ try {{ return (window.top || window.parent).document; }} catch (e) {{ return null; }} }}
-  function pWin() {{ try {{ return window.top || window.parent; }} catch (e) {{ return null; }} }}
+  // Prefer parent (Streamlit app frame). top is often the Cloud shell (cross-origin).
+  function pWin() {{
+    try {{
+      var d = window.parent && window.parent.document;
+      if (d) return window.parent;
+    }} catch (e) {{}}
+    try {{
+      var d2 = window.top && window.top.document;
+      if (d2) return window.top;
+    }} catch (e2) {{}}
+    return null;
+  }}
+  function pDoc() {{
+    var w = pWin();
+    return w ? w.document : null;
+  }}
 
   function readLang() {{
     var doc = pDoc();
-    if (!doc) return '';
-    var m = doc.cookie.match(/(?:^|;\\s*)googtrans=([^;]+)/);
-    if (m) {{
-      var parts = decodeURIComponent(m[1]).split('/');
-      if (parts[2]) return parts[2];
+    var win = pWin();
+    if (doc) {{
+      var m = doc.cookie.match(/(?:^|;\\s*)googtrans=([^;]+)/);
+      if (m) {{
+        var parts = decodeURIComponent(m[1]).split('/');
+        if (parts[2]) return parts[2];
+      }}
     }}
     try {{
-      var qp = new URL((pWin() || window).location.href).searchParams.get('lang');
-      if (qp) return qp;
+      if (win) {{
+        var qp = new URL(win.location.href).searchParams.get('lang');
+        if (qp) return qp;
+      }}
     }} catch (e) {{}}
     return '';
   }}
@@ -128,22 +145,23 @@ def render_translate_sidebar(page_language: str = "en", *, theme: Optional[str] 
   function setCookie(code) {{
     var doc = pDoc();
     var win = pWin();
-    if (!doc || !win) return;
+    if (!doc || !win) return false;
     var host = win.location.hostname || '';
     var clear = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
     doc.cookie = clear;
-    if (host && host !== 'localhost') {{
+    if (host && host !== 'localhost' && host !== '127.0.0.1') {{
       doc.cookie = clear + '; domain=' + host;
       doc.cookie = clear + '; domain=.' + host;
     }}
     if (code) {{
       var value = '/' + pageLang + '/' + code;
       doc.cookie = 'googtrans=' + value + '; path=/';
-      if (host && host !== 'localhost') {{
+      if (host && host !== 'localhost' && host !== '127.0.0.1') {{
         doc.cookie = 'googtrans=' + value + '; path=/; domain=' + host;
         doc.cookie = 'googtrans=' + value + '; path=/; domain=.' + host;
       }}
     }}
+    return true;
   }}
 
   function applyCombo(code) {{
@@ -152,9 +170,11 @@ def render_translate_sidebar(page_language: str = "en", *, theme: Optional[str] 
     var combo = doc.querySelector('select.goog-te-combo');
     if (!combo) return false;
     var want = code || '';
-    if (combo.value === want) return true;
     combo.value = want;
-    combo.dispatchEvent(new Event('change'));
+    combo.dispatchEvent(new Event('change', {{ bubbles: true }}));
+    try {{
+      combo.dispatchEvent(new Event('input', {{ bubbles: true }}));
+    }} catch (e) {{}}
     return true;
   }}
 
@@ -168,20 +188,23 @@ def render_translate_sidebar(page_language: str = "en", *, theme: Optional[str] 
         mount = doc.createElement('div');
         mount.id = 'google_translate_element';
         mount.className = 'notranslate';
-        mount.style.cssText = 'position:fixed;left:0;top:0;width:1px;height:1px;opacity:0.01;pointer-events:none;z-index:-1;';
+        mount.style.cssText = 'position:fixed;left:0;top:0;width:1px;height:1px;opacity:0.01;pointer-events:none;z-index:-1;overflow:visible;';
         doc.body.appendChild(mount);
       }}
       if (mount.dataset.ready !== '1' && win.google && win.google.translate && win.google.translate.TranslateElement) {{
         try {{
+          mount.innerHTML = '';
           mount.dataset.ready = '1';
           new win.google.translate.TranslateElement({{
             pageLanguage: pageLang,
             includedLanguages: included,
             autoDisplay: false
           }}, 'google_translate_element');
-        }} catch (e) {{ mount.dataset.ready = '0'; }}
+        }} catch (e) {{
+          mount.dataset.ready = '0';
+        }}
       }}
-      if (typeof cb === 'function') setTimeout(cb, 300);
+      if (typeof cb === 'function') setTimeout(cb, 350);
     }}
     win.googleTranslateElementInit = boot;
     if (!doc.getElementById('google-translate-script')) {{
@@ -189,7 +212,7 @@ def render_translate_sidebar(page_language: str = "en", *, theme: Optional[str] 
       s.id = 'google-translate-script';
       s.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
       s.async = true;
-      s.onload = function () {{ setTimeout(boot, 50); }};
+      s.onload = function () {{ setTimeout(boot, 80); }};
       doc.body.appendChild(s);
     }} else {{
       boot();
@@ -203,10 +226,11 @@ def render_translate_sidebar(page_language: str = "en", *, theme: Optional[str] 
     }}
   }}
 
-  function navigate(code) {{
+  function reloadApp(code) {{
     var win = pWin();
     if (!win) return;
     var url = new URL(win.location.href);
+    url.searchParams.delete('_gt');
     if (code) {{
       url.searchParams.set('lang', code);
       url.hash = 'googtrans(' + pageLang + '|' + code + ')';
@@ -214,16 +238,14 @@ def render_translate_sidebar(page_language: str = "en", *, theme: Optional[str] 
       url.searchParams.delete('lang');
       url.hash = '';
     }}
-    // Cache-bust so the browser always navigates even if only the hash changed
     url.searchParams.set('_gt', String(Date.now()));
-    win.location.replace(url.toString());
+    win.location.href = url.toString();
   }}
 
   function switchTo(code) {{
-    // Always cookie + full navigation. In-place goog-te-combo changes are
-    // unreliable for several languages until a hard reload.
     setCookie(code);
-    navigate(code);
+    // Reload the Streamlit app frame so Google reads googtrans on boot.
+    reloadApp(code);
   }}
 
   var current = readLang();
@@ -233,12 +255,16 @@ def render_translate_sidebar(page_language: str = "en", *, theme: Optional[str] 
       switchTo(sel.value || '');
     }});
   }}
-  // After load: boot engine and apply cookie language (retries for slow element.js)
+
   ensureEngine(function () {{
     if (!current) return;
-    applyCombo(current);
-    setTimeout(function () {{ applyCombo(current); }}, 500);
-    setTimeout(function () {{ applyCombo(current); }}, 1500);
+    var tries = 0;
+    function tick() {{
+      tries += 1;
+      if (applyCombo(current) || tries > 12) return;
+      setTimeout(tick, 400);
+    }}
+    tick();
   }});
 }})();
 </script>
