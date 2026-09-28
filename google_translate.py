@@ -1,7 +1,8 @@
 """Google Translate for Streamlit — custom HTML picker (not BaseWeb).
 
-Important: on Streamlit Cloud the component iframe's window.top is the outer
-shell (cross-origin). Always use window.parent (the app frame), never top.
+Streamlit Cloud: the component iframe can write parent cookies but cannot
+navigate parent/top. A <script> injected into the parent document owns
+cookie + reload + Google Translate boot so language changes apply immediately.
 """
 
 from __future__ import annotations
@@ -37,9 +38,152 @@ LANGS = [
 ]
 
 
+def _install_parent_bridge(page_language: str, included: str) -> None:
+    """Install GT controller as a real parent-document script (not iframe JS)."""
+    page_language_js = json.dumps(page_language)
+    included_js = json.dumps(included)
+    components.html(
+        f"""
+<script>
+(function () {{
+  var parentWin = null;
+  try {{ parentWin = window.parent; }} catch (e) {{ return; }}
+  if (!parentWin || !parentWin.document) return;
+
+  var pageLang = {page_language_js};
+  var included = {included_js};
+
+  // Reconfigure every Streamlit rerun; install listener/boot only once.
+  parentWin.__sfGtPageLang = pageLang;
+  parentWin.__sfGtIncluded = included;
+
+  if (parentWin.__sfGtBridgeInstalled) {{
+    try {{ parentWin.__sfGtBoot && parentWin.__sfGtBoot(); }} catch (e) {{}}
+    return;
+  }}
+  parentWin.__sfGtBridgeInstalled = true;
+
+  var script = parentWin.document.createElement('script');
+  script.id = 'sf-gt-bridge';
+  script.textContent = [
+    '(function(){',
+    '  var pageLang = window.__sfGtPageLang || "en";',
+    '  var included = window.__sfGtIncluded || "";',
+    '  function readLang(){',
+    '    var m = document.cookie.match(/(?:^|;\\\\s*)googtrans=([^;]+)/);',
+    '    if (m){ var p = decodeURIComponent(m[1]).split("/"); if (p[2]) return p[2]; }',
+    '    try { var q = new URL(location.href).searchParams.get("lang"); if (q) return q; } catch(e){}',
+    '    return "";',
+    '  }',
+    '  function setCookie(code){',
+    '    pageLang = window.__sfGtPageLang || pageLang;',
+    '    var host = location.hostname || "";',
+    '    var clear = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";',
+    '    document.cookie = clear;',
+    '    if (host && host !== "localhost" && host !== "127.0.0.1"){',
+    '      document.cookie = clear + "; domain=" + host;',
+    '      document.cookie = clear + "; domain=." + host;',
+    '    }',
+    '    if (code){',
+    '      var value = "/" + pageLang + "/" + code;',
+    '      document.cookie = "googtrans=" + value + "; path=/";',
+    '      if (host && host !== "localhost" && host !== "127.0.0.1"){',
+    '        document.cookie = "googtrans=" + value + "; path=/; domain=" + host;',
+    '        document.cookie = "googtrans=" + value + "; path=/; domain=." + host;',
+    '      }',
+    '    }',
+    '  }',
+    '  function applyCombo(code){',
+    '    var combo = document.querySelector("select.goog-te-combo");',
+    '    if (!combo) return false;',
+    '    combo.value = code || "";',
+    '    combo.dispatchEvent(new Event("change", { bubbles: true }));',
+    '    return true;',
+    '  }',
+    '  function hideBanner(){',
+    '    if (document.getElementById("sf-gt-hide-banner")) return;',
+    '    var hide = document.createElement("style");',
+    '    hide.id = "sf-gt-hide-banner";',
+    '    hide.textContent = ".goog-te-banner-frame,body>.skiptranslate,iframe.goog-te-banner-frame,.VIpgJd-ZVi9od-ORHb-OEVmcd,#goog-gt-tt{display:none!important;visibility:hidden!important;}body{top:0!important;position:static!important;}";',
+    '    document.head.appendChild(hide);',
+    '  }',
+    '  function boot(cb){',
+    '    pageLang = window.__sfGtPageLang || pageLang;',
+    '    included = window.__sfGtIncluded || included;',
+    '    hideBanner();',
+    '    var mount = document.getElementById("google_translate_element");',
+    '    if (!mount){',
+    '      mount = document.createElement("div");',
+    '      mount.id = "google_translate_element";',
+    '      mount.className = "notranslate";',
+    '      mount.style.cssText = "position:fixed;left:0;top:0;width:1px;height:1px;opacity:0.01;pointer-events:none;z-index:-1;";',
+    '      document.body.appendChild(mount);',
+    '    }',
+    '    function init(){',
+    '      if (mount.dataset.ready !== "1" && window.google && google.translate && google.translate.TranslateElement){',
+    '        try {',
+    '          mount.innerHTML = "";',
+    '          mount.dataset.ready = "1";',
+    '          new google.translate.TranslateElement({ pageLanguage: pageLang, includedLanguages: included, autoDisplay: false }, "google_translate_element");',
+    '        } catch(e){ mount.dataset.ready = "0"; }',
+    '      }',
+    '      if (typeof cb === "function") setTimeout(cb, 300);',
+    '    }',
+    '    window.googleTranslateElementInit = init;',
+    '    if (!document.getElementById("google-translate-script")){',
+    '      var s = document.createElement("script");',
+    '      s.id = "google-translate-script";',
+    '      s.src = "https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";',
+    '      s.async = true;',
+    '      s.onload = function(){ setTimeout(init, 50); };',
+    '      document.body.appendChild(s);',
+    '    } else {',
+    '      init();',
+    '    }',
+    '  }',
+    '  window.__sfGtBoot = boot;',
+    '  window.__sfGtSwitch = function(code){',
+    '    setCookie(code || "");',
+    '    var url = new URL(location.href);',
+    '    url.searchParams.delete("_gt");',
+    '    if (code){ url.searchParams.set("lang", code); url.hash = "googtrans(" + (window.__sfGtPageLang||pageLang) + "|" + code + ")"; }',
+    '    else { url.searchParams.delete("lang"); url.hash = ""; }',
+    '    url.searchParams.set("_gt", String(Date.now()));',
+    '    location.replace(url.toString());',
+    '  };',
+    '  window.addEventListener("message", function(ev){',
+    '    var d = ev && ev.data;',
+    '    if (!d || d.type !== "sf-gt-switch") return;',
+    '    window.__sfGtSwitch(d.code || "");',
+    '  });',
+    '  boot(function(){',
+    '    var current = readLang();',
+    '    if (!current) return;',
+    '    var tries = 0;',
+    '    (function tick(){',
+    '      tries += 1;',
+    '      if (applyCombo(current) || tries > 15) return;',
+    '      setTimeout(tick, 350);',
+    '    })();',
+    '  });',
+    '})();'
+  ].join('\\n');
+
+  parentWin.document.documentElement.appendChild(script);
+}})();
+</script>
+""",
+        height=1,
+        width=1,
+    )
+
+
 def render_translate_sidebar(page_language: str = "en", *, theme: Optional[str] = None) -> None:
     """Sidebar: heading + themed native select that drives Google Translate."""
     inject_react_dom_patch()
+
+    included = ",".join(c for c, _ in LANGS if c)
+    _install_parent_bridge(page_language, included)
 
     is_dark = (theme or "light") == "dark"
     bg = "#1e293b" if is_dark else "#ffffff"
@@ -56,9 +200,7 @@ def render_translate_sidebar(page_language: str = "en", *, theme: Optional[str] 
     options_html = "".join(
         f'<option value="{code}">{label_}</option>' for code, label_ in LANGS
     )
-    included = ",".join(c for c, _ in LANGS if c)
     page_language_js = json.dumps(page_language)
-    included_js = json.dumps(included)
 
     st.markdown("### Translate")
     components.html(
@@ -103,149 +245,43 @@ def render_translate_sidebar(page_language: str = "en", *, theme: Optional[str] 
 <script>
 (function () {{
   var pageLang = {page_language_js};
-  var included = {included_js};
   var sel = document.getElementById('sf-lang');
 
-  // Prefer parent (Streamlit app frame). top is often the Cloud shell (cross-origin).
   function pWin() {{
-    try {{
-      var d = window.parent && window.parent.document;
-      if (d) return window.parent;
-    }} catch (e) {{}}
-    try {{
-      var d2 = window.top && window.top.document;
-      if (d2) return window.top;
-    }} catch (e2) {{}}
+    try {{ if (window.parent && window.parent.document) return window.parent; }} catch (e) {{}}
     return null;
-  }}
-  function pDoc() {{
-    var w = pWin();
-    return w ? w.document : null;
   }}
 
   function readLang() {{
-    var doc = pDoc();
     var win = pWin();
-    if (doc) {{
-      var m = doc.cookie.match(/(?:^|;\\s*)googtrans=([^;]+)/);
+    if (!win) return '';
+    try {{
+      var m = win.document.cookie.match(/(?:^|;\\s*)googtrans=([^;]+)/);
       if (m) {{
         var parts = decodeURIComponent(m[1]).split('/');
         if (parts[2]) return parts[2];
       }}
-    }}
-    try {{
-      if (win) {{
-        var qp = new URL(win.location.href).searchParams.get('lang');
-        if (qp) return qp;
-      }}
     }} catch (e) {{}}
+    try {{
+      var qp = new URL(win.location.href).searchParams.get('lang');
+      if (qp) return qp;
+    }} catch (e2) {{}}
     return '';
   }}
 
-  function setCookie(code) {{
-    var doc = pDoc();
-    var win = pWin();
-    if (!doc || !win) return false;
-    var host = win.location.hostname || '';
-    var clear = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
-    doc.cookie = clear;
-    if (host && host !== 'localhost' && host !== '127.0.0.1') {{
-      doc.cookie = clear + '; domain=' + host;
-      doc.cookie = clear + '; domain=.' + host;
-    }}
-    if (code) {{
-      var value = '/' + pageLang + '/' + code;
-      doc.cookie = 'googtrans=' + value + '; path=/';
-      if (host && host !== 'localhost' && host !== '127.0.0.1') {{
-        doc.cookie = 'googtrans=' + value + '; path=/; domain=' + host;
-        doc.cookie = 'googtrans=' + value + '; path=/; domain=.' + host;
-      }}
-    }}
-    return true;
-  }}
-
-  function applyCombo(code) {{
-    var doc = pDoc();
-    if (!doc) return false;
-    var combo = doc.querySelector('select.goog-te-combo');
-    if (!combo) return false;
-    var want = code || '';
-    combo.value = want;
-    combo.dispatchEvent(new Event('change', {{ bubbles: true }}));
-    try {{
-      combo.dispatchEvent(new Event('input', {{ bubbles: true }}));
-    }} catch (e) {{}}
-    return true;
-  }}
-
-  function ensureEngine(cb) {{
-    var doc = pDoc();
-    var win = pWin();
-    if (!doc || !win) return;
-    function boot() {{
-      var mount = doc.getElementById('google_translate_element');
-      if (!mount) {{
-        mount = doc.createElement('div');
-        mount.id = 'google_translate_element';
-        mount.className = 'notranslate';
-        mount.style.cssText = 'position:fixed;left:0;top:0;width:1px;height:1px;opacity:0.01;pointer-events:none;z-index:-1;overflow:visible;';
-        doc.body.appendChild(mount);
-      }}
-      if (mount.dataset.ready !== '1' && win.google && win.google.translate && win.google.translate.TranslateElement) {{
-        try {{
-          mount.innerHTML = '';
-          mount.dataset.ready = '1';
-          new win.google.translate.TranslateElement({{
-            pageLanguage: pageLang,
-            includedLanguages: included,
-            autoDisplay: false
-          }}, 'google_translate_element');
-        }} catch (e) {{
-          mount.dataset.ready = '0';
-        }}
-      }}
-      if (typeof cb === 'function') setTimeout(cb, 350);
-    }}
-    win.googleTranslateElementInit = boot;
-    if (!doc.getElementById('google-translate-script')) {{
-      var s = doc.createElement('script');
-      s.id = 'google-translate-script';
-      s.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
-      s.async = true;
-      s.onload = function () {{ setTimeout(boot, 80); }};
-      doc.body.appendChild(s);
-    }} else {{
-      boot();
-    }}
-    var hide = doc.getElementById('sf-gt-hide-banner');
-    if (!hide) {{
-      hide = doc.createElement('style');
-      hide.id = 'sf-gt-hide-banner';
-      hide.textContent = '.goog-te-banner-frame,body>{{.skiptranslate,iframe.goog-te-banner-frame,.VIpgJd-ZVi9od-ORHb-OEVmcd,#goog-gt-tt{{display:none!important;visibility:hidden!important;}}body{{top:0!important;position:static!important;}}';
-      doc.head.appendChild(hide);
-    }}
-  }}
-
-  function reloadApp(code) {{
-    var win = pWin();
-    if (!win) return;
-    var url = new URL(win.location.href);
-    url.searchParams.delete('_gt');
-    if (code) {{
-      url.searchParams.set('lang', code);
-      url.hash = 'googtrans(' + pageLang + '|' + code + ')';
-    }} else {{
-      url.searchParams.delete('lang');
-      url.hash = '';
-    }}
-    url.searchParams.set('_gt', String(Date.now()));
-    win.location.href = url.toString();
-  }}
-
   function switchTo(code) {{
-    setCookie(code);
-    // Reload the Streamlit app frame so Google reads googtrans on boot.
-    reloadApp(code);
+    var win = pWin();
+    // Prefer parent-owned switch (runs as parent script → reload allowed)
+    try {{
+      if (win && typeof win.__sfGtSwitch === 'function') {{
+        win.__sfGtSwitch(code || '');
+        return;
+      }}
+    }} catch (e) {{}}
+    // Fallback: postMessage to parent bridge
+    try {{
+      if (win) win.postMessage({{ type: 'sf-gt-switch', code: code || '', pageLang: pageLang }}, '*');
+    }} catch (e2) {{}}
   }}
 
   var current = readLang();
@@ -256,16 +292,10 @@ def render_translate_sidebar(page_language: str = "en", *, theme: Optional[str] 
     }});
   }}
 
-  ensureEngine(function () {{
-    if (!current) return;
-    var tries = 0;
-    function tick() {{
-      tries += 1;
-      if (applyCombo(current) || tries > 12) return;
-      setTimeout(tick, 400);
-    }}
-    tick();
-  }});
+  try {{
+    var win = pWin();
+    if (win && typeof win.__sfGtBoot === 'function') win.__sfGtBoot();
+  }} catch (e) {{}}
 }})();
 </script>
 </body>
