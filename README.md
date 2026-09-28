@@ -2,7 +2,9 @@
 
 Predict telecom customer churn with a Random Forest model and an interactive Streamlit app.
 
-**Live:** [https://telco-customer-churn-prediction-editorjakupi.streamlit.app/](https://telco-customer-churn-prediction-editorjakupi.streamlit.app/)
+**Live:** [https://churn.editorjakupi.com](https://churn.editorjakupi.com)  
+**Repo:** [github.com/editorjakupi/telco-customer-churn-prediction](https://github.com/editorjakupi/telco-customer-churn-prediction)  
+**Hosting:** Hetzner CX23 `apps-nbg1` (`23.88.100.144`) — Streamlit in Docker behind shared Caddy + Let’s Encrypt
 
 ---
 
@@ -26,12 +28,30 @@ streamlit run telco_churn_streamlit_app.py
 
 Train / refresh the model via `telco_customer_churn_analysis.ipynb` (outputs `best_churn_model.pkl`, `model_info.json`).
 
-### Docker
+### Docker (local)
 
 ```bash
 docker build -t telco-churn .
 docker run -p 8501:8501 -e PORT=8501 telco-churn
 ```
+
+---
+
+## Deploy (Hetzner)
+
+Production path: `/opt/churn` on `apps-nbg1`, container `churn-prod-app` on Docker network `deploy_gematrior`. Caddy serves `churn.editorjakupi.com`.
+
+```bash
+# on VPS
+cd /opt/churn
+docker compose up -d --build
+docker exec gematrior-prod-caddy caddy reload --config /etc/caddy/Caddyfile
+curl -sI https://churn.editorjakupi.com/ | head -5
+```
+
+Compose service **must not** be named `app` (alias collision with Gematrior). See `docker-compose.yml`.
+
+Streamlit Community Cloud hosting for this app has been **removed**; GitHub remains the source repo.
 
 ---
 
