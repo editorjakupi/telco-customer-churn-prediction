@@ -1,8 +1,8 @@
 """Google Translate for Streamlit — native sidebar picker + cookie reload.
 
-Uses a visible Streamlit selectbox (always renders) and only mutates the parent
-DOM for the hidden Google engine. Cookie + full reload avoids fragile combo
-events; a React removeChild patch prevents Translate+Streamlit crashes.
+Avoid st.stop() (it blanked the whole app until a manual refresh). Language
+changes set the googtrans cookie and navigate via JS so the UI stays visible
+until the reload lands.
 """
 
 from __future__ import annotations
@@ -39,10 +39,10 @@ LANGS = [
 
 LANG_LABELS = [label for _, label in LANGS]
 LANG_CODES = [code for code, _ in LANGS]
+WIDGET_KEY = "sf_google_translate_lang"
 
 
 def _boot_engine(page_language: str = "en") -> None:
-    """Mount Google Translate element.js on the parent document + apply cookie."""
     included = ",".join(c for c in LANG_CODES if c)
     page_language_js = json.dumps(page_language)
     included_js = json.dumps(included)
@@ -52,8 +52,8 @@ def _boot_engine(page_language: str = "en") -> None:
 (function () {{
   var pageLang = {page_language_js};
   var included = {included_js};
-  function pDoc() {{ try {{ return window.parent.document; }} catch (e) {{ return null; }} }}
-  function pWin() {{ try {{ return window.parent; }} catch (e) {{ return null; }} }}
+  function pDoc() {{ try {{ return (window.top || window.parent).document; }} catch (e) {{ return null; }} }}
+  function pWin() {{ try {{ return window.top || window.parent; }} catch (e) {{ return null; }} }}
   var doc = pDoc();
   var win = pWin();
   if (!doc || !win) return;
@@ -110,7 +110,6 @@ def _boot_engine(page_language: str = "en") -> None:
     boot();
   }}
 
-  // Hide Google's top banner so it never covers Streamlit UI
   var style = doc.getElementById('sf-gt-hide-banner');
   if (!style) {{
     style = doc.createElement('style');
@@ -121,12 +120,13 @@ def _boot_engine(page_language: str = "en") -> None:
 }})();
 </script>
 """,
-        height=1,
-        width=1,
+        height=2,
+        width=2,
     )
 
 
 def _set_cookie_and_reload(code: str, page_language: str = "en") -> None:
+    """Set googtrans + ?lang= and navigate. Does not blank the Streamlit tree."""
     code_js = json.dumps(code or "")
     page_language_js = json.dumps(page_language)
     components.html(
@@ -135,8 +135,8 @@ def _set_cookie_and_reload(code: str, page_language: str = "en") -> None:
 (function () {{
   var code = {code_js};
   var pageLang = {page_language_js};
-  var doc, win;
-  try {{ doc = window.parent.document; win = window.parent; }} catch (e) {{ return; }}
+  var win, doc;
+  try {{ win = window.top || window.parent; doc = win.document; }} catch (e) {{ return; }}
   var host = (win.location && win.location.hostname) || '';
   var clear = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
   doc.cookie = clear;
@@ -144,6 +144,7 @@ def _set_cookie_and_reload(code: str, page_language: str = "en") -> None:
     doc.cookie = clear + '; domain=' + host;
     doc.cookie = clear + '; domain=.' + host;
   }}
+  var url = new URL(win.location.href);
   if (code) {{
     var value = '/' + pageLang + '/' + code;
     doc.cookie = 'googtrans=' + value + '; path=/';
@@ -151,50 +152,49 @@ def _set_cookie_and_reload(code: str, page_language: str = "en") -> None:
       doc.cookie = 'googtrans=' + value + '; path=/; domain=' + host;
       doc.cookie = 'googtrans=' + value + '; path=/; domain=.' + host;
     }}
-    win.location.hash = 'googtrans(' + pageLang + '|' + code + ')';
+    url.searchParams.set('lang', code);
+    url.hash = 'googtrans(' + pageLang + '|' + code + ')';
   }} else {{
-    win.location.hash = '';
+    url.searchParams.delete('lang');
+    url.hash = '';
   }}
-  win.location.reload();
+  // Full navigation — more reliable than reload() after Streamlit reruns
+  win.location.replace(url.toString());
 }})();
 </script>
 """,
-        height=1,
-        width=1,
+        height=2,
+        width=2,
     )
 
 
 def render_translate_sidebar(page_language: str = "en", *, theme: Optional[str] = None) -> None:
-    """Sidebar: heading + native Streamlit language select (Google Translate engine)."""
-    del theme  # theme reserved for future chrome styling
+    del theme
     inject_react_dom_patch()
     _boot_engine(page_language=page_language)
 
     st.markdown("### Translate")
     st.caption("Google Translate · page language")
 
-    # Prefer cookie via query param mirror so select stays in sync after reload
-    qp = st.query_params
-    current = ""
-    if "lang" in qp:
-        current = str(qp.get("lang") or "")
+    current = str(st.query_params.get("lang", "") or "")
     if current not in LANG_CODES:
         current = ""
 
-    idx = LANG_CODES.index(current) if current in LANG_CODES else 0
+    label_for_current = LANG_LABELS[LANG_CODES.index(current)]
+    # Keep widget state aligned with the URL (avoids stuck "Applying…" loops)
+    if st.session_state.get(WIDGET_KEY) != label_for_current:
+        st.session_state[WIDGET_KEY] = label_for_current
+
     choice = st.selectbox(
         "Translate page",
         LANG_LABELS,
-        index=idx,
-        key="sf_google_translate_lang",
+        key=WIDGET_KEY,
         help="Choose a language — the page reloads with Google Translate.",
     )
     code = LANG_CODES[LANG_LABELS.index(choice)]
 
     if code != current:
-        st.query_params["lang"] = code if code else None
-        if not code and "lang" in st.query_params:
-            del st.query_params["lang"]
+        # JS owns the URL/?lang= update — do not also mutate st.query_params here
+        # (that would rerun Streamlit and race the navigation).
         _set_cookie_and_reload(code, page_language=page_language)
-        st.info("Applying translation…")
-        st.stop()
+        st.caption("Switching language…")

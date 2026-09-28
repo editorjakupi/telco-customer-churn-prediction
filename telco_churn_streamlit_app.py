@@ -47,7 +47,7 @@ st.set_page_config(
 )
 
 THEME_KEY = "telco_ui_theme"
-APP_BUILD = "lux-2026-09-28b"
+APP_BUILD = "lux-2026-09-28c"
 
 
 def inject_telco_theme(theme: str) -> None:
