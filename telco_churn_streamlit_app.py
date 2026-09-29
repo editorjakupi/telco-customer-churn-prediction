@@ -13,7 +13,7 @@ import numpy as np
 from datetime import datetime
 
 from google_translate import render_translate_sidebar
-from streamlit_parent_inject import inject_parent_css, inject_react_dom_patch
+from streamlit_parent_inject import inject_parent_css, inject_parent_js, inject_react_dom_patch
 from streamlit_theme_force import inject_theme_force
 from streamlit_theme_widgets import inject_widget_theme, streamlit_widget_theme_css
 
