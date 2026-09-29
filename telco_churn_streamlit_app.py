@@ -47,7 +47,63 @@ st.set_page_config(
 )
 
 THEME_KEY = "telco_ui_theme"
-APP_BUILD = "lux-2026-09-28f"
+APP_BUILD = "lux-2026-09-29b"
+UPLOAD_DF_KEY = "telco_uploaded_df"
+REQUIRED_UPLOAD_COLS = [
+    "gender", "SeniorCitizen", "Partner", "Dependents", "tenure",
+    "PhoneService", "MultipleLines", "InternetService", "OnlineSecurity",
+    "OnlineBackup", "DeviceProtection", "TechSupport", "StreamingTV",
+    "StreamingMovies", "Contract", "PaperlessBilling", "PaymentMethod",
+    "MonthlyCharges", "TotalCharges", "Churn",
+]
+
+SEO_TITLE = "Telco Churn Prediction | Retention risk atelier"
+SEO_DESCRIPTION = (
+    "Score individual telecom churn risk with a Random Forest model, "
+    "upload your own Telco-schema dataset, and explore high-risk customers."
+)
+SEO_CANONICAL = "https://churn.editorjakupi.com/"
+
+
+def inject_seo_meta() -> None:
+    """Set title/description/canonical on the parent Streamlit document for crawlers."""
+    title = json.dumps(SEO_TITLE)
+    desc = json.dumps(SEO_DESCRIPTION)
+    canon = json.dumps(SEO_CANONICAL)
+    inject_parent_js(
+        f"""
+var win = window.parent || window;
+var doc = win.document;
+if (!doc || !doc.head) return;
+doc.title = {title};
+function setMeta(attr, key, content) {{
+  var sel = 'meta[' + attr + '="' + key + '"]';
+  var el = doc.querySelector(sel);
+  if (!el) {{
+    el = doc.createElement('meta');
+    el.setAttribute(attr, key);
+    doc.head.appendChild(el);
+  }}
+  el.setAttribute('content', content);
+}}
+function setLink(rel, href) {{
+  var el = doc.querySelector('link[rel="' + rel + '"]');
+  if (!el) {{
+    el = doc.createElement('link');
+    el.setAttribute('rel', rel);
+    doc.head.appendChild(el);
+  }}
+  el.setAttribute('href', href);
+}}
+setMeta('name', 'description', {desc});
+setMeta('name', 'robots', 'index, follow');
+setMeta('property', 'og:title', {title});
+setMeta('property', 'og:description', {desc});
+setMeta('property', 'og:url', {canon});
+setMeta('property', 'og:type', 'website');
+setLink('canonical', {canon});
+"""
+    )
 
 
 def inject_telco_theme(theme: str) -> None:
@@ -104,7 +160,19 @@ def inject_telco_theme(theme: str) -> None:
   color: var(--telco-text) !important;
   color-scheme: inherit;
 }
-.block-container { padding-top: 1.15rem; padding-bottom: 3rem; max-width: 1180px; }
+.block-container { padding-top: 0.55rem; padding-bottom: 1.25rem; max-width: 1280px; }
+/* Compact Customer Prediction: less vertical chrome */
+.pred-compact .telco-hero { padding: 1rem 1.25rem 1.1rem; margin-bottom: 0.75rem; }
+.pred-compact .main-header { font-size: clamp(1.65rem, 3vw, 2.15rem) !important; margin-bottom: 0.25rem !important; }
+.pred-compact .hero-subtitle { font-size: 0.9rem !important; line-height: 1.35 !important; }
+.pred-compact .hero-meta { margin-top: 0.65rem !important; }
+.pred-compact .section-header { font-size: 1.25rem !important; margin: 0.35rem 0 0.45rem !important; padding-bottom: 0.3rem !important; }
+.pred-compact .form-panel { padding: 0.45rem 0.75rem 0.15rem !important; margin: 0.35rem 0 0.45rem !important; border-radius: 12px !important; }
+.pred-compact .form-panel-title { margin: 0 0 0.35rem !important; font-size: 0.68rem !important; }
+.pred-compact .prediction-card { padding: 0.85rem 1rem !important; margin: 0.5rem 0 !important; }
+.pred-compact [data-testid="stVerticalBlock"] > div { gap: 0.25rem; }
+.pred-compact div[data-testid="stSlider"] { padding-bottom: 0.15rem; }
+.pred-compact .stCaption { margin-bottom: 0.25rem !important; }
 [data-testid="stHeader"] { background: transparent !important; }
 [data-testid="stHeader"] button, [data-testid="stHeader"] span,
 [data-testid="stSidebarCollapsedControl"] button, [data-testid="stSidebarCollapsedControl"] span,
@@ -288,6 +356,7 @@ def tt(key: str) -> str:
         "nav": "Navigation",
         "page_pred": "Customer Prediction",
         "page_risk": "Risk Explorer",
+        "page_upload": "Upload dataset",
         "hero": "Telco Churn <em>Atelier</em>",
         "hero_sub": "A calm workspace to score individual churn risk and explore who needs attention next.",
         "predict": "Predict churn risk",
@@ -295,6 +364,7 @@ def tt(key: str) -> str:
         "model_info": "Model Information",
         "section_customer": "Customer profile",
         "translate": "Translate",
+        "section_upload": "Your dataset",
     }
     return en.get(key, key)
 
@@ -315,60 +385,49 @@ def themed_ink() -> str:
 
 
 def create_complete_input_form():
-    """Luxury customer form — native Streamlit labels (always readable with dark base theme)."""
+    """Compact customer form — denser grid so prediction fits one viewport."""
     st.markdown(f'<div class="section-header">{tt("section_customer")}</div>', unsafe_allow_html=True)
-    st.caption("Fill in the profile — predictions update from the same features the model was trained on.")
+    st.caption("Same feature schema as model training. Fill the profile, then predict.")
 
-    st.markdown('<div class="form-panel"><p class="form-panel-title">01 · Personal</p></div>', unsafe_allow_html=True)
-    col1, col2, col3 = st.columns(3)
-    with col1:
+    st.markdown('<div class="form-panel"><p class="form-panel-title">Profile · services · billing</p></div>', unsafe_allow_html=True)
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
         gender = st.selectbox("Gender", ["Male", "Female"], key="telco_gender")
         senior_citizen = st.selectbox("Senior Citizen", ["Yes", "No"], key="telco_senior")
-    with col2:
         partner = st.selectbox("Partner", ["Yes", "No"], key="telco_partner")
         dependents = st.selectbox("Dependents", ["Yes", "No"], key="telco_dependents")
-    with col3:
         tenure = st.slider("Tenure (months)", 0, 72, 12, key="telco_tenure")
-
-    st.markdown('<div class="form-panel"><p class="form-panel-title">02 · Connectivity</p></div>', unsafe_allow_html=True)
-    col1, col2, col3 = st.columns(3)
-    with col1:
+    with c2:
         phone_service = st.selectbox("Phone Service", ["Yes", "No"], key="telco_phone")
         multiple_lines = st.selectbox(
             "Multiple Lines", ["Yes", "No", "No phone service"], key="telco_multi"
         )
-    with col2:
         internet_service = st.selectbox(
             "Internet Service", ["DSL", "Fiber optic", "No"], key="telco_internet"
         )
         online_security = st.selectbox(
             "Online Security", ["Yes", "No", "No internet service"], key="telco_os"
         )
-    with col3:
         online_backup = st.selectbox(
             "Online Backup", ["Yes", "No", "No internet service"], key="telco_ob"
         )
+    with c3:
         device_protection = st.selectbox(
             "Device Protection", ["Yes", "No", "No internet service"], key="telco_dp"
         )
-
-    st.markdown('<div class="form-panel"><p class="form-panel-title">03 · Services & billing</p></div>', unsafe_allow_html=True)
-    col1, col2, col3 = st.columns(3)
-    with col1:
         tech_support = st.selectbox(
             "Tech Support", ["Yes", "No", "No internet service"], key="telco_ts"
         )
         streaming_tv = st.selectbox(
             "Streaming TV", ["Yes", "No", "No internet service"], key="telco_stv"
         )
-    with col2:
         streaming_movies = st.selectbox(
             "Streaming Movies", ["Yes", "No", "No internet service"], key="telco_sm"
         )
         contract = st.selectbox(
             "Contract", ["Month-to-month", "One year", "Two year"], key="telco_contract"
         )
-    with col3:
+    with c4:
         paperless_billing = st.selectbox("Paperless Billing", ["Yes", "No"], key="telco_paper")
         payment_method = st.selectbox(
             "Payment Method",
@@ -380,14 +439,9 @@ def create_complete_input_form():
             ],
             key="telco_pay",
         )
-
-    st.markdown('<div class="form-panel"><p class="form-panel-title">04 · Charges</p></div>', unsafe_allow_html=True)
-    col7, col8 = st.columns(2)
-    with col7:
         monthly_charges = st.slider(
             "Monthly Charges ($)", 0.0, 200.0, 50.0, 1.0, key="telco_monthly"
         )
-    with col8:
         total_charges = st.number_input(
             "Total Charges ($)", 0.0, 10000.0, 1000.0, 10.0, key="telco_total"
         )
@@ -429,14 +483,13 @@ def predict_churn(model, customer_data):
         return None, None
 
 def display_prediction(prediction, probability):
-    """Display prediction with clean design"""
+    """Display prediction — compact gauge + metrics for one-viewport fit."""
     if prediction is None:
         return
     
     churn_prob = probability[1]  # Probability for "Yes"
     
     st.markdown('<div class="prediction-card">', unsafe_allow_html=True)
-    st.markdown("## Churn Prediction")
     
     # Risk level based on probability
     if churn_prob >= 0.8:
@@ -456,122 +509,186 @@ def display_prediction(prediction, probability):
         risk_text = "LOW RISK"
         action = "Standard retention"
     
-    # Display risk level
-    st.markdown(f'<div class="{risk_class}">{risk_text}</div>', unsafe_allow_html=True)
-    
-    # Display probability
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Churn Probability", f"{churn_prob:.1%}")
-    with col2:
-        st.metric("Retention Probability", f"{1-churn_prob:.1%}")
-    with col3:
-        st.metric("Recommended Action", action)
-    
-    # Visual representation
-    fig = go.Figure(go.Indicator(
-        mode = "gauge+number+delta",
-        value = churn_prob * 100,
-        domain = {'x': [0, 1], 'y': [0, 1]},
-        title = {'text': "Churn Risk (%)"},
-        delta = {'reference': 50},
-        gauge = {
-            'axis': {'range': [None, 100]},
-            'bar': {'color': "#0d9488"},
-            'steps': [
-                {'range': [0, 30], 'color': "lightgreen"},
-                {'range': [30, 60], 'color': "yellow"},
-                {'range': [60, 80], 'color': "orange"},
-                {'range': [80, 100], 'color': "red"}
-            ],
-            'threshold': {
-                'line': {'color': "red", 'width': 4},
-                'thickness': 0.75,
-                'value': 90
+    left, right = st.columns([1.15, 1])
+    with left:
+        st.markdown(f'<div class="{risk_class}">{risk_text}</div>', unsafe_allow_html=True)
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Churn", f"{churn_prob:.1%}")
+        m2.metric("Retention", f"{1-churn_prob:.1%}")
+        m3.metric("Action", action)
+    with right:
+        fig = go.Figure(go.Indicator(
+            mode = "gauge+number",
+            value = churn_prob * 100,
+            domain = {'x': [0, 1], 'y': [0, 1]},
+            title = {'text': "Churn risk %", 'font': {'size': 14}},
+            gauge = {
+                'axis': {'range': [None, 100]},
+                'bar': {'color': "#0d9488"},
+                'steps': [
+                    {'range': [0, 30], 'color': "lightgreen"},
+                    {'range': [30, 60], 'color': "yellow"},
+                    {'range': [60, 80], 'color': "orange"},
+                    {'range': [80, 100], 'color': "red"}
+                ],
             }
-        }
-    ))
-    fig.update_layout(height=300)
-    st.plotly_chart(fig, use_container_width=True)
+        ))
+        fig.update_layout(height=200, margin=dict(l=20, r=20, t=40, b=10))
+        st.plotly_chart(fig, use_container_width=True)
     
     st.markdown('</div>', unsafe_allow_html=True)
 
+def _prepare_telco_frame(df: pd.DataFrame) -> pd.DataFrame:
+    """Normalize TotalCharges, drop empty rows, engineer Tenure/Charges groups."""
+    out = df.copy()
+    if "customerID" in out.columns:
+        out = out.drop(columns=["customerID"])
+    out["TotalCharges"] = pd.to_numeric(out["TotalCharges"], errors="coerce")
+    out = out.dropna()
+    if "TenureGroup" not in out.columns:
+        out["TenureGroup"] = out["tenure"].apply(tenure_group)
+    if "ChargesGroup" not in out.columns:
+        out["ChargesGroup"] = out["MonthlyCharges"].apply(charges_group)
+    return out
+
+
 @st.cache_data
 def load_real_dataset():
-    """Load the real dataset"""
+    """Load the bundled Telco CSV (fallback when no upload)."""
     try:
-        # Load CSV file
-        df = pd.read_csv('WA_Fn-UseC_-Telco-Customer-Churn.csv')
-        
-        # Preprocess data (same as in notebook)
-        df['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce')
-        df = df.dropna()
-        
-        # Remove customerID
-        df = df.drop('customerID', axis=1)
-        
-        # Add feature engineering
-        df['TenureGroup'] = df['tenure'].apply(tenure_group)
-        df['ChargesGroup'] = df['MonthlyCharges'].apply(charges_group)
-        
-        return df
+        df = pd.read_csv("WA_Fn-UseC_-Telco-Customer-Churn.csv")
+        return _prepare_telco_frame(df)
     except Exception as e:
         st.error(f"Error loading dataset: {e}")
         return None
 
+
+def active_risk_dataset() -> tuple[pd.DataFrame | None, str]:
+    """Prefer uploaded session CSV; else bundled training set."""
+    uploaded = st.session_state.get(UPLOAD_DF_KEY)
+    if isinstance(uploaded, pd.DataFrame) and not uploaded.empty:
+        return uploaded, "uploaded"
+    return load_real_dataset(), "bundled"
+
+
+def validate_and_store_upload(raw: pd.DataFrame) -> pd.DataFrame | None:
+    """Validate Telco schema and keep a prepared frame in session."""
+    missing = [c for c in REQUIRED_UPLOAD_COLS if c not in raw.columns]
+    if missing:
+        st.error(
+            "Missing required columns: "
+            + ", ".join(missing)
+            + ". CSV must match the Telco churn schema (including Churn)."
+        )
+        return None
+    prepared = _prepare_telco_frame(raw)
+    keep = [c for c in REQUIRED_UPLOAD_COLS if c in prepared.columns]
+    for eng in ("TenureGroup", "ChargesGroup"):
+        if eng in prepared.columns and eng not in keep:
+            keep.append(eng)
+    prepared = prepared[keep]
+    if "Churn" not in prepared.columns:
+        st.error("Column Churn is required for Risk Explorer scoring.")
+        return None
+    st.session_state[UPLOAD_DF_KEY] = prepared
+    return prepared
+
+
+def display_upload_section(model):
+    """Upload own Telco-schema CSV for Risk Explorer scoring."""
+    st.markdown(f'<div class="section-header">{tt("section_upload")}</div>', unsafe_allow_html=True)
+    st.caption(
+        "Upload a CSV with the same columns as the IBM Telco Customer Churn dataset "
+        "(including Churn). Risk Explorer will score your rows with the trained model."
+    )
+    with st.expander("Required columns", expanded=False):
+        st.code(", ".join(REQUIRED_UPLOAD_COLS), language=None)
+
+    uploaded = st.file_uploader("Choose CSV", type=["csv"], key="telco_csv_uploader")
+    if uploaded is not None:
+        try:
+            raw = pd.read_csv(uploaded)
+        except Exception as e:
+            st.error(f"Could not read CSV: {e}")
+            raw = None
+        if raw is not None:
+            prepared = validate_and_store_upload(raw)
+            if prepared is not None:
+                st.success(
+                    f"Loaded **{len(prepared):,}** rows · **{len(prepared.columns)}** columns "
+                    f"from `{uploaded.name}`. Use **Risk Explorer** to score them."
+                )
+                st.dataframe(prepared.head(50), use_container_width=True)
+                c1, c2, c3 = st.columns(3)
+                c1.metric("Rows", f"{len(prepared):,}")
+                churn_rate = (
+                    prepared["Churn"].astype(str).str.lower().isin(["yes", "1", "true"]).mean()
+                    if "Churn" in prepared.columns
+                    else 0
+                )
+                c2.metric("Churn rate (label)", f"{churn_rate:.1%}")
+                c3.metric("Source", "Your upload")
+
+    current = st.session_state.get(UPLOAD_DF_KEY)
+    if isinstance(current, pd.DataFrame) and not current.empty:
+        st.info(f"Active upload in session: **{len(current):,}** customers.")
+        if st.button("Clear uploaded dataset", key="telco_clear_upload"):
+            del st.session_state[UPLOAD_DF_KEY]
+            st.rerun()
+    else:
+        st.info("No upload yet — Risk Explorer uses the bundled 7,043-customer set.")
+
+    if model is None:
+        st.warning("Model not loaded; upload is stored but scoring needs the model.")
+
+
 def get_high_risk_customers(model):
-    """Find high-risk customers with real data"""
-    # Load real dataset
-    df = load_real_dataset()
-    
+    """Score active dataset (upload or bundled) for churn risk."""
+    df, _source = active_risk_dataset()
+
     if df is None:
         st.error("Could not load dataset")
         return pd.DataFrame()
-    
-    # Prepare data for model (same as in notebook)
-    numerical_columns = ['tenure', 'MonthlyCharges', 'TotalCharges']
-    categorical_columns = ['gender', 'SeniorCitizen', 'Partner', 'Dependents', 'PhoneService', 
-                          'MultipleLines', 'InternetService', 'OnlineSecurity', 'OnlineBackup', 
-                          'DeviceProtection', 'TechSupport', 'StreamingTV', 'StreamingMovies', 
-                          'Contract', 'PaperlessBilling', 'PaymentMethod']
-    engineered_features = ['TenureGroup', 'ChargesGroup']
-    
-    # Create X and y
-    X = df.drop('Churn', axis=1)
-    y = df['Churn']
-    
+
+    X = df.drop("Churn", axis=1)
+    y = df["Churn"]
+
     try:
-        # Get churn probabilities for all customers
         churn_probabilities = model.predict_proba(X)[:, 1]
-        
-        # Create results
         results = pd.DataFrame({
-            'Customer_ID': [f"C{i:04d}" for i in range(len(X))],
-            'Churn_Probability': churn_probabilities,
-            'Actual_Churn': y,
-            'Risk_Level': pd.cut(churn_probabilities, 
-                               bins=[0, 0.3, 0.6, 0.8, 1.0], 
-                               labels=['Low', 'Medium', 'High', 'Critical'])
+            "Customer_ID": [f"C{i:04d}" for i in range(len(X))],
+            "Churn_Probability": churn_probabilities,
+            "Actual_Churn": y,
+            "Risk_Level": pd.cut(
+                churn_probabilities,
+                bins=[0, 0.3, 0.6, 0.8, 1.0],
+                labels=["Low", "Medium", "High", "Critical"],
+            ),
         })
-        
-        return results.sort_values('Churn_Probability', ascending=False)
+        return results.sort_values("Churn_Probability", ascending=False)
     except Exception as e:
         st.error(f"Error during risk analysis: {e}")
         return pd.DataFrame()
+
 
 def display_risk_explorer(model):
     """Risk Explorer with working filtering"""
     st.markdown('<div class="section-header">Churn Risk Explorer</div>', unsafe_allow_html=True)
     st.markdown("**Creative Feature:** Identify customers with highest churn risk")
-    st.info("**Using real dataset:** Analyzing all 7,043 customers with actual churn predictions")
-    
+    df_active, source = active_risk_dataset()
+    n = len(df_active) if df_active is not None else 0
+    if source == "uploaded":
+        st.info(f"**Using your upload:** Analyzing **{n:,}** customers with model predictions")
+    else:
+        st.info(f"**Using bundled dataset:** Analyzing **{n:,}** customers with actual churn predictions")
+
     # Controls
     col1, col2 = st.columns(2)
     with col1:
         top_n = st.selectbox("Number of customers to show", [10, 25, 50, 100, "All"], index=0)
     with col2:
         risk_threshold = st.slider("Risk threshold", 0.0, 1.0, 0.7, 0.05)
-    
+
     # Analyze risk
     if st.button("Analyze Risk", type="primary"):
         with st.spinner("Loading dataset and analyzing customers..."):
@@ -654,6 +771,7 @@ def main():
         st.session_state[THEME_KEY] = "dark"
 
     inject_react_dom_patch()
+    inject_seo_meta()
     model, model_info = load_model_and_info()
 
     with st.sidebar:
@@ -682,7 +800,7 @@ def main():
         st.markdown(f"### {tt('nav')}")
         page = st.radio(
             "Select function",
-            [tt("page_pred"), tt("page_risk")],
+            [tt("page_pred"), tt("page_upload"), tt("page_risk")],
             label_visibility="collapsed",
             key="telco_page_radio",
         )
@@ -717,6 +835,10 @@ def main():
     inject_widget_theme(theme, prefix="telco")
     inject_theme_force(theme, accent="#5eead4", accent_fg="#042f2e")
 
+    is_pred = page == tt("page_pred")
+    if is_pred:
+        st.markdown('<div class="pred-compact">', unsafe_allow_html=True)
+
     st.markdown(
         f"""
         <div class="telco-hero">
@@ -735,6 +857,8 @@ def main():
 
     if model is None:
         st.error("Could not load model. Check that files exist.")
+        if is_pred:
+            st.markdown("</div>", unsafe_allow_html=True)
         return
 
     if page == tt("page_pred"):
@@ -742,6 +866,9 @@ def main():
         if st.button(tt("predict"), type="primary", use_container_width=True):
             prediction, probability = predict_churn(model, customer_data)
             display_prediction(prediction, probability)
+        st.markdown("</div>", unsafe_allow_html=True)
+    elif page == tt("page_upload"):
+        display_upload_section(model)
     elif page == tt("page_risk"):
         display_risk_explorer(model)
 
