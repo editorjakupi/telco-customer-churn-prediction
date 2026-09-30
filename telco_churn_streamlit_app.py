@@ -41,7 +41,7 @@ def charges_group(charges):
 # Konfiguration
 st.set_page_config(
     page_title="Telco Churn Prediction",
-    page_icon="📱",
+    page_icon="favicon.png",
     layout="wide",
     initial_sidebar_state="expanded"
 )
