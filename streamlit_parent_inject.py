@@ -24,22 +24,26 @@ def inject_parent_css(css: str, *, style_id: str = "sf-parent-css") -> None:
     if (!doc || !doc.head) return false;
     var id = {sid};
     var el = doc.getElementById(id);
+    var cssText = {payload};
     if (!el) {{
       el = doc.createElement('style');
       el.id = id;
       doc.head.appendChild(el);
+      el.textContent = cssText;
+      return true;
     }}
-    el.textContent = {payload};
+    /* Skip rewrite when unchanged — repeated Streamlit reruns caused text jitter */
+    if (el.textContent === cssText) return true;
+    el.textContent = cssText;
     return true;
   }}
   try {{
     var parentDoc = null;
     try {{ parentDoc = window.parent && window.parent.document; }} catch (e) {{ parentDoc = null; }}
-    write(parentDoc);
-    write(document);
-    setTimeout(function () {{ write(parentDoc); }}, 200);
-    setTimeout(function () {{ write(parentDoc); }}, 800);
-    setTimeout(function () {{ write(parentDoc); }}, 2000);
+    var ok = write(parentDoc) || write(document);
+    if (!ok) {{
+      setTimeout(function () {{ write(parentDoc); write(document); }}, 200);
+    }}
   }} catch (e) {{
     console && console.warn && console.warn('inject_parent_css failed', e);
   }}

@@ -47,7 +47,6 @@ st.set_page_config(
 )
 
 THEME_KEY = "telco_ui_theme"
-APP_BUILD = "lux-2026-09-29b"
 UPLOAD_DF_KEY = "telco_uploaded_df"
 REQUIRED_UPLOAD_COLS = [
     "gender", "SeniorCitizen", "Partner", "Dependents", "tenure",
@@ -269,7 +268,21 @@ span[class*="material-symbols"],
 .sidebar-brand { padding: 0.85rem 0.15rem 1.1rem; margin-bottom: 0.35rem; border-bottom: 1px solid var(--telco-surface-border); }
 .sidebar-brand-title { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1.45rem; color: var(--telco-text); margin: 0; }
 .sidebar-brand-tag { font-family: 'Outfit', system-ui, sans-serif; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.16em; color: var(--telco-accent); margin: 0.35rem 0 0; }
-.sidebar-build { font-family: 'Outfit', system-ui, sans-serif; font-size: 0.65rem; color: var(--telco-text-muted); margin: 0.45rem 0 0; opacity: 0.75; }
+/* Stability: Google Translate wraps text in <font> and can cause micro-jitter */
+.stApp, .stApp * {
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+}
+font, font font {
+  vertical-align: inherit !important;
+  line-height: inherit !important;
+  letter-spacing: inherit !important;
+}
+.goog-text-highlight {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+body { overflow-anchor: none; }
 .risk-critical, .risk-high, .risk-medium, .risk-low {
   color: #fff; padding: 1rem 1.25rem; border-radius: 12px; text-align: center; font-weight: 700;
   letter-spacing: 0.06em; font-family: 'Outfit', system-ui, sans-serif;
@@ -780,7 +793,6 @@ def main():
             <div class="sidebar-brand">
                 <p class="sidebar-brand-title">Telco Retention</p>
                 <p class="sidebar-brand-tag">Churn intelligence</p>
-                <p class="sidebar-build notranslate">build {APP_BUILD}</p>
             </div>
             """,
             unsafe_allow_html=True,
