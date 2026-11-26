@@ -1,10 +1,25 @@
-# Keep Streamlit Cloud awake (always-reachable) by pinging the public app URL.
+# Forever-keep Streamlit warm AND keep this schedule enabled.
+#
+# GitHub disables scheduled workflows after 60 days with no repo activity
+# (commits / PRs / issues). Workflow *runs* do not count. This workflow:
+#   1) Pings the Streamlit app often enough to avoid cold sleep
+#   2) Pushes a heartbeat commit at least every ~14 days so the 60-day
+#      inactivity timer never reaches the disable threshold
+#
 name: Keep Streamlit Awake
 
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "*/20 * * * *"
   workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: keep-streamlit-awake
+  cancel-in-progress: false
 
 jobs:
   ping:
@@ -18,9 +33,103 @@ jobs:
             URL="https://telco-customer-churn-prediction-editorjakupi.streamlit.app/"
           fi
           echo "Pinging $URL"
-          code=$(curl -sS -L -o /dev/null -w "%{http_code}" --max-time 90 "$URL" || true)
+          # Streamlit may redirect; don't loop forever. Accept 2xx/3xx.
+          code=$(curl -sS -L --max-redirs 8 -o /dev/null -w "%{http_code}" \
+            --max-time 90 -A "pi93-keep-awake/1.0" "$URL" || true)
           echo "HTTP $code"
           case "$code" in
             2*|3*) exit 0 ;;
             *) echo "Unexpected status"; exit 1 ;;
           esac
+
+  keep_repo_active:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Needed so the bot can push back to main
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Heartbeat commit if last activity is ≥14 days old
+        id: beat
+        run: |
+          set -euo pipefail
+          mkdir -p .github
+          NOW=$(date -u +%s)
+          STALE_AFTER=$((14 * 86400))
+          NEED=1
+          if [ -f .github/last-activity ]; then
+            LAST_RAW=$(tr -d '[:space:]' < .github/last-activity)
+            if LAST_EPOCH=$(date -u -d "$LAST_RAW" +%s 2>/dev/null); then
+              AGE=$((NOW - LAST_EPOCH))
+              echo "Last activity: $LAST_RAW (${AGE}s ago)"
+              if [ "$AGE" -lt "$STALE_AFTER" ]; then
+                echo "Still fresh (<14 days). No commit needed."
+                NEED=0
+              fi
+            fi
+          fi
+          echo "need_commit=$NEED" >> "$GITHUB_OUTPUT"
+          if [ "$NEED" != "1" ]; then
+            exit 0
+          fi
+
+          date -u +"%Y-%m-%dT%H:%M:%SZ" > .github/last-activity
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/last-activity
+          git commit -m "chore: keep scheduled workflows active"
+          if git push origin HEAD:main; then
+            echo "pushed=true" >> "$GITHUB_OUTPUT"
+            echo "Heartbeat pushed — 60-day timer reset."
+          else
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
+            echo "Push failed" >&2
+            exit 1
+          fi
+
+      - name: Open issue if heartbeat push failed
+        if: failure() && steps.beat.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = 'Keep Streamlit Awake: heartbeat push failed';
+            const body = [
+              'The scheduled keep-awake workflow could not push `.github/last-activity`.',
+              '',
+              'If this continues, GitHub may disable the schedule after 60 days of no commits.',
+              '',
+              'Fix: ensure Actions can push to `main` (no blocking branch protection),',
+              'or make any commit on `main` at least once every ~50 days.',
+              '',
+              `Run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            ].join('\n');
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'keep-awake',
+              per_page: 5,
+            });
+            if (issues.data.length) {
+              core.info('Issue already open');
+              return;
+            }
+            // label may not exist yet — create issue without it if needed
+            try {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ['keep-awake'],
+              });
+            } catch (e) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+              });
+            }
